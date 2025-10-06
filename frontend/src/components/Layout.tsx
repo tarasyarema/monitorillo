@@ -14,7 +14,7 @@ export const Layout: React.FC = () => {
   const handleLogout = async () => {
     try {
       await authApi.logout();
-    } catch (error) {
+    } catch (_error) {
       // Ignore logout errors
     } finally {
       clearAuth();
