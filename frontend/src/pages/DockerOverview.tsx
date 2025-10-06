@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
 import { Button } from '../components/ui/button';
 import { Badge } from '../components/ui/badge';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { safeToLocaleTimeString } from '../lib/utils';
 
 export const DockerOverview: React.FC = () => {
   const { currentTeam } = useAppStore();
@@ -76,7 +77,7 @@ export const DockerOverview: React.FC = () => {
       if (!serverData.metrics?.docker) return;
 
       serverData.metrics.docker.forEach((metric: any) => {
-        const timestamp = new Date(metric.timestamp).toLocaleTimeString();
+        const timestamp = safeToLocaleTimeString(metric.timestamp);
 
         if (!timestampMap.has(timestamp)) {
           timestampMap.set(timestamp, { timestamp });

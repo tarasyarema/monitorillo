@@ -6,7 +6,7 @@ import { Alert as AlertType } from '../types';
 import { Button } from '../components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Badge } from '../components/ui/badge';
-import { formatDistanceToNow } from 'date-fns';
+import { safeFormatDistanceToNow } from '../lib/utils';
 
 export const Alerts: React.FC = () => {
   const queryClient = useQueryClient();
@@ -144,15 +144,17 @@ export const Alerts: React.FC = () => {
                       Value: <span className="font-medium">{alert.value.toFixed(1)}%</span> ( Threshold:{' '}
                       {alert.threshold.toFixed(1)}%)
                     </div>
-                    <div>Triggered {formatDistanceToNow(new Date(alert.triggered_at), { addSuffix: true })}</div>
+                    <div>
+                      Triggered {safeFormatDistanceToNow(alert.triggered_at, { addSuffix: true }) || 'recently'}
+                    </div>
                     {alert.acknowledged_at && (
                       <div className="text-green-600">
-                        Acknowledged {formatDistanceToNow(new Date(alert.acknowledged_at), { addSuffix: true })}
+                        Acknowledged {safeFormatDistanceToNow(alert.acknowledged_at, { addSuffix: true }) || 'recently'}
                       </div>
                     )}
                     {alert.resolved_at && (
                       <div className="text-green-600">
-                        Resolved {formatDistanceToNow(new Date(alert.resolved_at), { addSuffix: true })}
+                        Resolved {safeFormatDistanceToNow(alert.resolved_at, { addSuffix: true }) || 'recently'}
                       </div>
                     )}
                   </div>

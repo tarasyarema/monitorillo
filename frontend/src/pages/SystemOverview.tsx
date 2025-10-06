@@ -5,6 +5,7 @@ import { useAppStore } from '../lib/store';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { safeToLocaleTimeString } from '../lib/utils';
 
 export const SystemOverview: React.FC = () => {
   const { currentTeam } = useAppStore();
@@ -46,7 +47,7 @@ export const SystemOverview: React.FC = () => {
       if (!serverData.metrics?.system) return;
 
       serverData.metrics.system.forEach((metric: any) => {
-        const timestamp = new Date(metric.timestamp).toLocaleTimeString();
+        const timestamp = safeToLocaleTimeString(metric.timestamp);
 
         if (!timestampMap.has(timestamp)) {
           timestampMap.set(timestamp, { timestamp });

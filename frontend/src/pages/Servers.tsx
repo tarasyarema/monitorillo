@@ -9,7 +9,7 @@ import { Input } from '../components/ui/form-field';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
 import { Alert, AlertDescription } from '../components/ui/alert';
 import { Badge } from '../components/ui/badge';
-import { formatDistanceToNow } from 'date-fns';
+import { safeFormatDistanceToNow } from '../lib/utils';
 
 export const Servers: React.FC = () => {
   const queryClient = useQueryClient();
@@ -144,7 +144,9 @@ export const Servers: React.FC = () => {
             <CardContent className="space-y-3">
               <div className="text-sm text-gray-600">
                 {server.last_seen_at ? (
-                  <span>Last seen {formatDistanceToNow(new Date(server.last_seen_at), { addSuffix: true })}</span>
+                  <span>
+                    Last seen {safeFormatDistanceToNow(server.last_seen_at, { addSuffix: true }) || 'recently'}
+                  </span>
                 ) : (
                   <span className="text-gray-400">Never seen</span>
                 )}

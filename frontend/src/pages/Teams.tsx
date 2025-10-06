@@ -8,6 +8,7 @@ import { Input } from '../components/ui/form-field';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
 import { Alert, AlertDescription } from '../components/ui/alert';
 import { Badge } from '../components/ui/badge';
+import { safeToLocaleDateString } from '../lib/utils';
 
 export const Teams: React.FC = () => {
   const queryClient = useQueryClient();
@@ -111,7 +112,7 @@ export const Teams: React.FC = () => {
               <div className="text-sm text-gray-600">
                 {team.members?.length || 0} member{team.members?.length !== 1 ? 's' : ''}
               </div>
-              <div className="text-xs text-gray-500 mt-2">Created {new Date(team.created_at).toLocaleDateString()}</div>
+              <div className="text-xs text-gray-500 mt-2">Created {safeToLocaleDateString(team.created_at)}</div>
             </CardContent>
           </Card>
         ))}

@@ -7,7 +7,7 @@ import { Server, Alert } from '../types';
 import { Button } from '../components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
 import { Badge } from '../components/ui/badge';
-import { formatDistanceToNow } from 'date-fns';
+import { safeFormatDistanceToNow } from '../lib/utils';
 
 export const Dashboard: React.FC = () => {
   const { currentTeam } = useAppStore();
@@ -133,7 +133,7 @@ export const Dashboard: React.FC = () => {
                     </div>
                     <p className="text-sm font-medium">{alert.message}</p>
                     <p className="text-xs text-gray-500 mt-1">
-                      {formatDistanceToNow(new Date(alert.triggered_at), { addSuffix: true })}
+                      {safeFormatDistanceToNow(alert.triggered_at, { addSuffix: true }) || 'recently'}
                     </p>
                   </div>
                 </div>
@@ -187,7 +187,9 @@ export const Dashboard: React.FC = () => {
                     </div>
                     <div className="text-xs text-gray-500">
                       {server.last_seen_at ? (
-                        <span>Last seen {formatDistanceToNow(new Date(server.last_seen_at), { addSuffix: true })}</span>
+                        <span>
+                          Last seen {safeFormatDistanceToNow(server.last_seen_at, { addSuffix: true }) || 'recently'}
+                        </span>
                       ) : (
                         <span className="text-gray-400">Never seen</span>
                       )}

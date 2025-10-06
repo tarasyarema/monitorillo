@@ -7,6 +7,7 @@ import { Button } from '../components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
 import { Badge } from '../components/ui/badge';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { safeToLocaleTimeString } from '../lib/utils';
 
 export const ServerDetail: React.FC = () => {
   const { serverId } = useParams<{ serverId: string }>();
@@ -69,7 +70,7 @@ export const ServerDetail: React.FC = () => {
     return metricsHistory.system.map((m: any) => {
       const partitions = Object.values(m.value.disk?.partitions || {}) as any[];
       return {
-        timestamp: new Date(m.timestamp).toLocaleTimeString(),
+        timestamp: safeToLocaleTimeString(m.timestamp),
         cpu: m.value.cpu?.usage_percent || 0,
         memory: m.value.memory?.used_percent || 0,
         disk: partitions[0]?.used_percent || 0,
