@@ -1,0 +1,21 @@
+[Unit]
+Description=Monitorillo Monitoring Daemon
+After=network.target docker.service
+Wants=docker.service
+
+[Service]
+Type=simple
+User=root
+ExecStart=/usr/local/bin/monitorillo-daemon -config /etc/monitorillo/config.yaml
+Restart=always
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=monitorillo
+
+# Security
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

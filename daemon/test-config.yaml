@@ -1,0 +1,7 @@
+server_name: "test-server"
+
+api:
+  url: "http://localhost:8000"
+  api_key: "eqrEZNrN2ofsgVTqBxavaUpS6UP1kp7tuHWjmFkMxK8"
+
+interval: 5  # 5 seconds for testing
