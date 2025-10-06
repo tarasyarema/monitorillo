@@ -5,12 +5,12 @@ import { useAppStore } from '../lib/store';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import { safeToLocaleTimeString } from '../lib/utils';
 
 export const SystemOverview: React.FC = () => {
   const { currentTeam } = useAppStore();
   const [timeRange, setTimeRange] = useState(24);
   const [selectedMetric, setSelectedMetric] = useState<'cpu' | 'memory' | 'disk'>('cpu');
+  const [hiddenSeries, setHiddenSeries] = useState<Set<string>>(new Set());
 
   const { data: servers } = useQuery({
     queryKey: ['servers', currentTeam?.id],
@@ -40,20 +40,27 @@ export const SystemOverview: React.FC = () => {
   const prepareChartData = () => {
     if (!serversMetrics.data) return [];
 
-    // Create a map of timestamps
-    const timestampMap = new Map<string, any>();
+    // Create a map of timestamps (rounded to nearest minute for alignment)
+    const timestampMap = new Map<number, any>();
 
     serversMetrics.data.forEach((serverData: any) => {
       if (!serverData.metrics?.system) return;
 
       serverData.metrics.system.forEach((metric: any) => {
-        const timestamp = safeToLocaleTimeString(metric.timestamp);
+        const date = new Date(metric.timestamp);
+        if (isNaN(date.getTime())) return;
 
-        if (!timestampMap.has(timestamp)) {
-          timestampMap.set(timestamp, { timestamp });
+        // Round to nearest minute for alignment across servers
+        const roundedTime = Math.floor(date.getTime() / 60000) * 60000;
+
+        if (!timestampMap.has(roundedTime)) {
+          timestampMap.set(roundedTime, {
+            timestamp: new Date(roundedTime).toLocaleTimeString(),
+            _time: roundedTime,
+          });
         }
 
-        const point = timestampMap.get(timestamp);
+        const point = timestampMap.get(roundedTime);
         const partitions = Object.values(metric.value.disk?.partitions || {}) as any[];
 
         point[`${serverData.serverName}_cpu`] = metric.value.cpu?.usage_percent || 0;
@@ -62,12 +69,37 @@ export const SystemOverview: React.FC = () => {
       });
     });
 
-    return Array.from(timestampMap.values());
+    // Sort by time and return
+    return Array.from(timestampMap.values()).sort((a, b) => a._time - b._time);
   };
 
   const chartData = prepareChartData();
 
   const colors = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#14b8a6', '#f97316'];
+
+  const handleLegendClick = (data: any) => {
+    const serverName = data.value;
+    setHiddenSeries((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(serverName)) {
+        newSet.delete(serverName);
+      } else {
+        newSet.add(serverName);
+      }
+      return newSet;
+    });
+  };
+
+  const clearSelection = () => {
+    setHiddenSeries(new Set());
+  };
+
+  const tooltipFormatter = (value: any) => {
+    if (typeof value === 'number') {
+      return value.toFixed(2) + '%';
+    }
+    return value;
+  };
 
   if (!currentTeam) {
     return <div className="text-center py-12">Please select a team first</div>;
@@ -107,6 +139,11 @@ export const SystemOverview: React.FC = () => {
           <div className="flex justify-between items-center">
             <CardTitle>All Servers - {selectedMetric.toUpperCase()} Usage</CardTitle>
             <div className="flex gap-2">
+              {hiddenSeries.size > 0 && (
+                <Button variant="outline" size="sm" onClick={clearSelection}>
+                  Clear Selection
+                </Button>
+              )}
               <Button variant={timeRange === 1 ? 'default' : 'outline'} size="sm" onClick={() => setTimeRange(1)}>
                 1h
               </Button>
@@ -126,8 +163,8 @@ export const SystemOverview: React.FC = () => {
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="timestamp" />
                 <YAxis domain={[0, 100]} />
-                <Tooltip />
-                <Legend />
+                <Tooltip formatter={tooltipFormatter} />
+                <Legend onClick={handleLegendClick} wrapperStyle={{ cursor: 'pointer' }} />
                 {servers?.map((server: any, index: number) => (
                   <Line
                     key={server.id}
@@ -136,6 +173,8 @@ export const SystemOverview: React.FC = () => {
                     stroke={colors[index % colors.length]}
                     name={server.name}
                     dot={false}
+                    hide={hiddenSeries.has(server.name)}
+                    strokeWidth={2}
                   />
                 ))}
               </LineChart>

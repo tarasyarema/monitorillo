@@ -6,8 +6,7 @@ import { useAppStore } from '../lib/store';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Badge } from '../components/ui/badge';
-import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import { safeToLocaleTimeString } from '../lib/utils';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
 export const DockerOverview: React.FC = () => {
   const { currentTeam } = useAppStore();
@@ -18,6 +17,7 @@ export const DockerOverview: React.FC = () => {
     containerFromUrl ? new Set([containerFromUrl]) : new Set()
   );
   const [allContainers, setAllContainers] = useState<Map<string, { name: string; server: string }>>(new Map());
+  const [hiddenSeries, setHiddenSeries] = useState<Set<string>>(new Set());
 
   const { data: servers } = useQuery({
     queryKey: ['servers', currentTeam?.id],
@@ -71,19 +71,26 @@ export const DockerOverview: React.FC = () => {
   const chartData = useMemo(() => {
     if (!serversMetrics.data) return [];
 
-    const timestampMap = new Map<string, any>();
+    const timestampMap = new Map<number, any>();
 
     serversMetrics.data.forEach((serverData: any) => {
       if (!serverData.metrics?.docker) return;
 
       serverData.metrics.docker.forEach((metric: any) => {
-        const timestamp = safeToLocaleTimeString(metric.timestamp);
+        const date = new Date(metric.timestamp);
+        if (isNaN(date.getTime())) return;
 
-        if (!timestampMap.has(timestamp)) {
-          timestampMap.set(timestamp, { timestamp });
+        // Round to nearest minute for alignment across servers
+        const roundedTime = Math.floor(date.getTime() / 60000) * 60000;
+
+        if (!timestampMap.has(roundedTime)) {
+          timestampMap.set(roundedTime, {
+            timestamp: new Date(roundedTime).toLocaleTimeString(),
+            _time: roundedTime,
+          });
         }
 
-        const point = timestampMap.get(timestamp);
+        const point = timestampMap.get(roundedTime);
 
         metric.value.containers?.forEach((container: any) => {
           const containerKey = `${serverData.serverName}_${container.name}`;
@@ -99,9 +106,35 @@ export const DockerOverview: React.FC = () => {
       });
     });
 
-    return Array.from(timestampMap.values());
+    // Sort by time and return
+    return Array.from(timestampMap.values()).sort((a, b) => a._time - b._time);
   }, [serversMetrics.data, selectedContainers]);
+
   const colors = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#14b8a6', '#f97316'];
+
+  const handleLegendClick = (data: any) => {
+    const containerName = data.value;
+    setHiddenSeries((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(containerName)) {
+        newSet.delete(containerName);
+      } else {
+        newSet.add(containerName);
+      }
+      return newSet;
+    });
+  };
+
+  const clearSelection = () => {
+    setHiddenSeries(new Set());
+  };
+
+  const tooltipFormatter = (value: any) => {
+    if (typeof value === 'number') {
+      return value.toFixed(2) + '%';
+    }
+    return value;
+  };
 
   const toggleContainer = (key: string) => {
     const newSelected = new Set(selectedContainers);
@@ -130,6 +163,11 @@ export const DockerOverview: React.FC = () => {
       <div className="flex justify-between items-center">
         <h1 className="text-3xl font-bold">Docker Containers Overview</h1>
         <div className="flex gap-2">
+          {hiddenSeries.size > 0 && (
+            <Button variant="outline" size="sm" onClick={clearSelection}>
+              Clear Selection
+            </Button>
+          )}
           <Button variant={timeRange === 1 ? 'default' : 'outline'} size="sm" onClick={() => setTimeRange(1)}>
             1h
           </Button>
@@ -176,29 +214,33 @@ export const DockerOverview: React.FC = () => {
         </CardHeader>
         <CardContent>
           {chartData.length > 0 ? (
-            <ResponsiveContainer width="100%" height={300}>
-              <AreaChart data={chartData}>
+            <ResponsiveContainer width="100%" height={400}>
+              <LineChart data={chartData}>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="timestamp" />
                 <YAxis />
-                <Tooltip />
-                <Legend />
+                <Tooltip formatter={tooltipFormatter} />
+                <Legend
+                  onClick={handleLegendClick}
+                  wrapperStyle={{ maxHeight: '100px', overflowY: 'auto', cursor: 'pointer' }}
+                />
                 {Array.from(allContainers.keys()).map((key, index) => {
                   if (selectedContainers.size > 0 && !selectedContainers.has(key)) return null;
+                  const containerLabel = `${allContainers.get(key)?.server} / ${allContainers.get(key)?.name}`;
                   return (
-                    <Area
+                    <Line
                       key={key}
                       type="monotone"
                       dataKey={`${key}_cpu`}
-                      stackId="1"
                       stroke={colors[index % colors.length]}
-                      fill={colors[index % colors.length]}
-                      fillOpacity={0.6}
-                      name={allContainers.get(key)?.name || key}
+                      name={containerLabel}
+                      dot={false}
+                      strokeWidth={2}
+                      hide={hiddenSeries.has(containerLabel)}
                     />
                   );
                 })}
-              </AreaChart>
+              </LineChart>
             </ResponsiveContainer>
           ) : (
             <div className="text-center py-12 text-gray-500">No metrics data available</div>
@@ -213,29 +255,33 @@ export const DockerOverview: React.FC = () => {
         </CardHeader>
         <CardContent>
           {chartData.length > 0 ? (
-            <ResponsiveContainer width="100%" height={300}>
-              <AreaChart data={chartData}>
+            <ResponsiveContainer width="100%" height={400}>
+              <LineChart data={chartData}>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="timestamp" />
                 <YAxis />
-                <Tooltip />
-                <Legend />
+                <Tooltip formatter={tooltipFormatter} />
+                <Legend
+                  onClick={handleLegendClick}
+                  wrapperStyle={{ maxHeight: '100px', overflowY: 'auto', cursor: 'pointer' }}
+                />
                 {Array.from(allContainers.keys()).map((key, index) => {
                   if (selectedContainers.size > 0 && !selectedContainers.has(key)) return null;
+                  const containerLabel = `${allContainers.get(key)?.server} / ${allContainers.get(key)?.name}`;
                   return (
-                    <Area
+                    <Line
                       key={key}
                       type="monotone"
                       dataKey={`${key}_memory`}
-                      stackId="1"
                       stroke={colors[index % colors.length]}
-                      fill={colors[index % colors.length]}
-                      fillOpacity={0.6}
-                      name={allContainers.get(key)?.name || key}
+                      name={containerLabel}
+                      dot={false}
+                      strokeWidth={2}
+                      hide={hiddenSeries.has(containerLabel)}
                     />
                   );
                 })}
-              </AreaChart>
+              </LineChart>
             </ResponsiveContainer>
           ) : (
             <div className="text-center py-12 text-gray-500">No metrics data available</div>

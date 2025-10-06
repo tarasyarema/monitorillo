@@ -140,10 +140,12 @@ export const Alerts: React.FC = () => {
                   <p className="text-lg font-medium mb-1">{alert.message}</p>
 
                   <div className="text-sm text-gray-600 space-y-1">
-                    <div>
-                      Value: <span className="font-medium">{alert.value.toFixed(1)}%</span> ( Threshold:{' '}
-                      {alert.threshold.toFixed(1)}%)
-                    </div>
+                    {alert.value != null && alert.threshold != null && (
+                      <div>
+                        Value: <span className="font-medium">{alert.value.toFixed(1)}%</span> ( Threshold:{' '}
+                        {alert.threshold.toFixed(1)}%)
+                      </div>
+                    )}
                     <div>
                       Triggered {safeFormatDistanceToNow(alert.triggered_at, { addSuffix: true }) || 'recently'}
                     </div>

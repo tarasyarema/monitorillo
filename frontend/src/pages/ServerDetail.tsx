@@ -13,7 +13,9 @@ export const ServerDetail: React.FC = () => {
   const { serverId } = useParams<{ serverId: string }>();
   const queryClient = useQueryClient();
   const [showApiKey, setShowApiKey] = useState(false);
+  const [showApiSection, setShowApiSection] = useState(false);
   const [timeRange, setTimeRange] = useState(24);
+  const [hiddenSeries, setHiddenSeries] = useState<Set<string>>(new Set());
 
   const { data: server } = useQuery({
     queryKey: ['server', serverId],
@@ -80,6 +82,30 @@ export const ServerDetail: React.FC = () => {
 
   const chartData = prepareChartData();
 
+  const handleLegendClick = (data: any) => {
+    const metricName = data.value;
+    setHiddenSeries((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(metricName)) {
+        newSet.delete(metricName);
+      } else {
+        newSet.add(metricName);
+      }
+      return newSet;
+    });
+  };
+
+  const clearSelection = () => {
+    setHiddenSeries(new Set());
+  };
+
+  const tooltipFormatter = (value: any) => {
+    if (typeof value === 'number') {
+      return value.toFixed(2) + '%';
+    }
+    return value;
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -91,47 +117,54 @@ export const ServerDetail: React.FC = () => {
           </div>
           <p className="text-gray-600">{server.hostname}</p>
         </div>
-        <Link to="/servers">
-          <Button variant="outline">Back to Servers</Button>
-        </Link>
+        <div className="flex gap-2">
+          <Button variant="outline" size="sm" onClick={() => setShowApiSection(!showApiSection)}>
+            {showApiSection ? 'Hide' : 'Show'} API Key
+          </Button>
+          <Link to="/servers">
+            <Button variant="outline">Back to Servers</Button>
+          </Link>
+        </div>
       </div>
 
       {/* API Key Section */}
-      <Card>
-        <CardHeader>
-          <CardTitle>API Key</CardTitle>
-          <CardDescription>Use this API key to configure the monitoring daemon</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          <div className="flex gap-2">
-            <code className="flex-1 p-3 bg-gray-100 rounded font-mono text-sm break-all">
-              {showApiKey ? server.api_key : '••••••••••••••••••••••••••••••••'}
-            </code>
-            <Button variant="outline" onClick={() => setShowApiKey(!showApiKey)}>
-              {showApiKey ? 'Hide' : 'Show'}
-            </Button>
+      {showApiSection && (
+        <Card>
+          <CardHeader>
+            <CardTitle>API Key</CardTitle>
+            <CardDescription>Use this API key to configure the monitoring daemon</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <div className="flex gap-2">
+              <code className="flex-1 p-3 bg-gray-100 rounded font-mono text-sm break-all">
+                {showApiKey ? server.api_key : '••••••••••••••••••••••••••••••••'}
+              </code>
+              <Button variant="outline" onClick={() => setShowApiKey(!showApiKey)}>
+                {showApiKey ? 'Hide' : 'Show'}
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  navigator.clipboard.writeText(server.api_key);
+                }}
+              >
+                Copy
+              </Button>
+            </div>
             <Button
-              variant="outline"
+              variant="destructive"
+              size="sm"
               onClick={() => {
-                navigator.clipboard.writeText(server.api_key);
+                if (confirm('Are you sure? This will invalidate the current API key.')) {
+                  regenerateApiKeyMutation.mutate();
+                }
               }}
             >
-              Copy
+              Regenerate API Key
             </Button>
-          </div>
-          <Button
-            variant="destructive"
-            size="sm"
-            onClick={() => {
-              if (confirm('Are you sure? This will invalidate the current API key.')) {
-                regenerateApiKeyMutation.mutate();
-              }
-            }}
-          >
-            Regenerate API Key
-          </Button>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Latest Metrics */}
       {systemMetrics && (
@@ -205,6 +238,11 @@ export const ServerDetail: React.FC = () => {
             <div className="flex justify-between items-center">
               <CardTitle>Metrics History</CardTitle>
               <div className="flex gap-2">
+                {hiddenSeries.size > 0 && (
+                  <Button variant="outline" size="sm" onClick={clearSelection}>
+                    Clear Selection
+                  </Button>
+                )}
                 <Button variant={timeRange === 1 ? 'default' : 'outline'} size="sm" onClick={() => setTimeRange(1)}>
                   1h
                 </Button>
@@ -226,8 +264,8 @@ export const ServerDetail: React.FC = () => {
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="timestamp" />
                 <YAxis />
-                <Tooltip />
-                <Legend />
+                <Tooltip formatter={tooltipFormatter} />
+                <Legend onClick={handleLegendClick} wrapperStyle={{ cursor: 'pointer' }} />
                 <Area
                   type="monotone"
                   dataKey="cpu"
@@ -236,6 +274,7 @@ export const ServerDetail: React.FC = () => {
                   fill="#3b82f6"
                   fillOpacity={0.6}
                   name="CPU %"
+                  hide={hiddenSeries.has('CPU %')}
                 />
                 <Area
                   type="monotone"
@@ -245,6 +284,7 @@ export const ServerDetail: React.FC = () => {
                   fill="#10b981"
                   fillOpacity={0.6}
                   name="Memory %"
+                  hide={hiddenSeries.has('Memory %')}
                 />
                 <Area
                   type="monotone"
@@ -254,6 +294,7 @@ export const ServerDetail: React.FC = () => {
                   fill="#f59e0b"
                   fillOpacity={0.6}
                   name="Disk %"
+                  hide={hiddenSeries.has('Disk %')}
                 />
               </AreaChart>
             </ResponsiveContainer>
