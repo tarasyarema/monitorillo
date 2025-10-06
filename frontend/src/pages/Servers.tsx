@@ -21,7 +21,7 @@ export const Servers: React.FC = () => {
 
   const { data: servers, isLoading } = useQuery({
     queryKey: ['servers', currentTeam?.id],
-    queryFn: () => currentTeam ? serversApi.list(currentTeam.id) : Promise.resolve([]),
+    queryFn: () => (currentTeam ? serversApi.list(currentTeam.id) : Promise.resolve([])),
     enabled: !!currentTeam,
   });
 
@@ -91,9 +91,7 @@ export const Servers: React.FC = () => {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h1 className="text-3xl font-bold">Servers</h1>
-        <Button onClick={() => setShowCreateForm(!showCreateForm)}>
-          {showCreateForm ? 'Cancel' : 'Add Server'}
-        </Button>
+        <Button onClick={() => setShowCreateForm(!showCreateForm)}>{showCreateForm ? 'Cancel' : 'Add Server'}</Button>
       </div>
 
       {/* Create Server Form */}
@@ -146,9 +144,7 @@ export const Servers: React.FC = () => {
             <CardContent className="space-y-3">
               <div className="text-sm text-gray-600">
                 {server.last_seen_at ? (
-                  <span>
-                    Last seen {formatDistanceToNow(new Date(server.last_seen_at), { addSuffix: true })}
-                  </span>
+                  <span>Last seen {formatDistanceToNow(new Date(server.last_seen_at), { addSuffix: true })}</span>
                 ) : (
                   <span className="text-gray-400">Never seen</span>
                 )}

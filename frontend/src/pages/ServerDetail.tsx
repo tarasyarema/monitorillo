@@ -66,16 +66,15 @@ export const ServerDetail: React.FC = () => {
   const prepareChartData = () => {
     if (!metricsHistory?.system) return [];
 
-    return metricsHistory.system
-      .map((m: any) => {
-        const partitions = Object.values(m.value.disk?.partitions || {}) as any[];
-        return {
-          timestamp: new Date(m.timestamp).toLocaleTimeString(),
-          cpu: m.value.cpu?.usage_percent || 0,
-          memory: m.value.memory?.used_percent || 0,
-          disk: partitions[0]?.used_percent || 0,
-        };
-      });
+    return metricsHistory.system.map((m: any) => {
+      const partitions = Object.values(m.value.disk?.partitions || {}) as any[];
+      return {
+        timestamp: new Date(m.timestamp).toLocaleTimeString(),
+        cpu: m.value.cpu?.usage_percent || 0,
+        memory: m.value.memory?.used_percent || 0,
+        disk: partitions[0]?.used_percent || 0,
+      };
+    });
   };
 
   const chartData = prepareChartData();
@@ -87,9 +86,7 @@ export const ServerDetail: React.FC = () => {
         <div>
           <div className="flex items-center gap-3 mb-2">
             <h1 className="text-3xl font-bold">{server.name}</h1>
-            <Badge variant={server.status === 'online' ? 'success' : 'secondary'}>
-              {server.status}
-            </Badge>
+            <Badge variant={server.status === 'online' ? 'success' : 'secondary'}>{server.status}</Badge>
           </div>
           <p className="text-gray-600">{server.hostname}</p>
         </div>
@@ -144,9 +141,7 @@ export const ServerDetail: React.FC = () => {
             </CardHeader>
             <CardContent>
               <div className="text-3xl font-bold">{systemMetrics.cpu?.usage_percent?.toFixed(1) || 0}%</div>
-              <p className="text-xs text-gray-500 mt-1">
-                Load: {systemMetrics.cpu?.load_avg_1?.toFixed(2) || 0}
-              </p>
+              <p className="text-xs text-gray-500 mt-1">Load: {systemMetrics.cpu?.load_avg_1?.toFixed(2) || 0}</p>
             </CardContent>
           </Card>
 
@@ -167,14 +162,17 @@ export const ServerDetail: React.FC = () => {
               <CardTitle className="text-sm font-medium text-gray-600">Disk Usage</CardTitle>
             </CardHeader>
             <CardContent>
-              {systemMetrics.disk?.partitions && Object.entries(systemMetrics.disk.partitions).slice(0, 1).map(([path, info]: [string, any]) => (
-                <div key={path}>
-                  <div className="text-3xl font-bold">{info?.used_percent?.toFixed(1) || 0}%</div>
-                  <p className="text-xs text-gray-500 mt-1">
-                    {formatBytes(info?.used || 0)} / {formatBytes(info?.total || 0)}
-                  </p>
-                </div>
-              ))}
+              {systemMetrics.disk?.partitions &&
+                Object.entries(systemMetrics.disk.partitions)
+                  .slice(0, 1)
+                  .map(([path, info]: [string, any]) => (
+                    <div key={path}>
+                      <div className="text-3xl font-bold">{info?.used_percent?.toFixed(1) || 0}%</div>
+                      <p className="text-xs text-gray-500 mt-1">
+                        {formatBytes(info?.used || 0)} / {formatBytes(info?.total || 0)}
+                      </p>
+                    </div>
+                  ))}
               {!systemMetrics.disk?.partitions && <div className="text-3xl font-bold">0%</div>}
             </CardContent>
           </Card>
@@ -206,32 +204,16 @@ export const ServerDetail: React.FC = () => {
             <div className="flex justify-between items-center">
               <CardTitle>Metrics History</CardTitle>
               <div className="flex gap-2">
-                <Button
-                  variant={timeRange === 1 ? 'default' : 'outline'}
-                  size="sm"
-                  onClick={() => setTimeRange(1)}
-                >
+                <Button variant={timeRange === 1 ? 'default' : 'outline'} size="sm" onClick={() => setTimeRange(1)}>
                   1h
                 </Button>
-                <Button
-                  variant={timeRange === 6 ? 'default' : 'outline'}
-                  size="sm"
-                  onClick={() => setTimeRange(6)}
-                >
+                <Button variant={timeRange === 6 ? 'default' : 'outline'} size="sm" onClick={() => setTimeRange(6)}>
                   6h
                 </Button>
-                <Button
-                  variant={timeRange === 24 ? 'default' : 'outline'}
-                  size="sm"
-                  onClick={() => setTimeRange(24)}
-                >
+                <Button variant={timeRange === 24 ? 'default' : 'outline'} size="sm" onClick={() => setTimeRange(24)}>
                   24h
                 </Button>
-                <Button
-                  variant={timeRange === 168 ? 'default' : 'outline'}
-                  size="sm"
-                  onClick={() => setTimeRange(168)}
-                >
+                <Button variant={timeRange === 168 ? 'default' : 'outline'} size="sm" onClick={() => setTimeRange(168)}>
                   7d
                 </Button>
               </div>
@@ -239,15 +221,39 @@ export const ServerDetail: React.FC = () => {
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
-              <AreaChart animationDuration={300} data={chartData}>
+              <AreaChart data={chartData}>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="timestamp" />
                 <YAxis />
                 <Tooltip />
                 <Legend />
-                <Area type="monotone" dataKey="cpu" stackId="1" stroke="#3b82f6" fill="#3b82f6" fillOpacity={0.6} name="CPU %" />
-                <Area type="monotone" dataKey="memory" stackId="2" stroke="#10b981" fill="#10b981" fillOpacity={0.6} name="Memory %" />
-                <Area type="monotone" dataKey="disk" stackId="3" stroke="#f59e0b" fill="#f59e0b" fillOpacity={0.6} name="Disk %" />
+                <Area
+                  type="monotone"
+                  dataKey="cpu"
+                  stackId="1"
+                  stroke="#3b82f6"
+                  fill="#3b82f6"
+                  fillOpacity={0.6}
+                  name="CPU %"
+                />
+                <Area
+                  type="monotone"
+                  dataKey="memory"
+                  stackId="2"
+                  stroke="#10b981"
+                  fill="#10b981"
+                  fillOpacity={0.6}
+                  name="Memory %"
+                />
+                <Area
+                  type="monotone"
+                  dataKey="disk"
+                  stackId="3"
+                  stroke="#f59e0b"
+                  fill="#f59e0b"
+                  fillOpacity={0.6}
+                  name="Disk %"
+                />
               </AreaChart>
             </ResponsiveContainer>
           </CardContent>
@@ -274,9 +280,7 @@ export const ServerDetail: React.FC = () => {
                       <h4 className="font-medium">{container.name}</h4>
                       <p className="text-sm text-gray-600">{container.image}</p>
                     </div>
-                    <Badge variant={container.state === 'running' ? 'success' : 'secondary'}>
-                      {container.state}
-                    </Badge>
+                    <Badge variant={container.state === 'running' ? 'success' : 'secondary'}>{container.state}</Badge>
                   </div>
                   {container.state === 'running' && (
                     <div className="grid grid-cols-2 gap-2 text-sm mt-3">
@@ -332,10 +336,7 @@ export const ServerDetail: React.FC = () => {
             <p className="text-gray-600">
               No metrics received yet. Install and configure the monitoring daemon on this server.
             </p>
-            <Link
-              to="https://github.com/monitorillo/daemon"
-              className="text-primary hover:underline mt-2 inline-block"
-            >
+            <Link to="https://github.com/monitorillo/daemon" className="text-primary hover:underline mt-2 inline-block">
               View installation instructions
             </Link>
           </CardContent>

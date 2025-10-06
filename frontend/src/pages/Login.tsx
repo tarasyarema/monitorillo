@@ -80,7 +80,7 @@ export const Login: React.FC = () => {
               </Button>
 
               <p className="text-center text-sm text-gray-600">
-                Don't have an account?{' '}
+                Don&apos;t have an account?{' '}
                 <Link to="/register" className="text-primary hover:underline">
                   Sign up
                 </Link>

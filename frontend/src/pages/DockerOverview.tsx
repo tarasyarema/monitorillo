@@ -28,7 +28,7 @@ export const DockerOverview: React.FC = () => {
     queryKey: ['all-docker-metrics', servers?.map((s: any) => s.id), timeRange],
     queryFn: async () => {
       if (!servers || servers.length === 0) return [];
-      
+
       const metricsPromises = servers.map((server: any) =>
         metricsApi.getHistory(server.id, timeRange).then((data) => ({
           serverId: server.id,
@@ -36,7 +36,7 @@ export const DockerOverview: React.FC = () => {
           metrics: data,
         }))
       );
-      
+
       return Promise.all(metricsPromises);
     },
     enabled: !!servers && servers.length > 0,
@@ -90,9 +90,8 @@ export const DockerOverview: React.FC = () => {
           if (selectedContainers.size === 0 || selectedContainers.has(containerKey)) {
             point[`${containerKey}_cpu`] = container.cpu_percent || 0;
             // Calculate memory percentage from usage and limit
-            const memoryPercent = container.memory_limit > 0
-              ? (container.memory_usage / container.memory_limit) * 100
-              : 0;
+            const memoryPercent =
+              container.memory_limit > 0 ? (container.memory_usage / container.memory_limit) * 100 : 0;
             point[`${containerKey}_memory`] = memoryPercent;
           }
         });
@@ -130,25 +129,13 @@ export const DockerOverview: React.FC = () => {
       <div className="flex justify-between items-center">
         <h1 className="text-3xl font-bold">Docker Containers Overview</h1>
         <div className="flex gap-2">
-          <Button
-            variant={timeRange === 1 ? 'default' : 'outline'}
-            size="sm"
-            onClick={() => setTimeRange(1)}
-          >
+          <Button variant={timeRange === 1 ? 'default' : 'outline'} size="sm" onClick={() => setTimeRange(1)}>
             1h
           </Button>
-          <Button
-            variant={timeRange === 6 ? 'default' : 'outline'}
-            size="sm"
-            onClick={() => setTimeRange(6)}
-          >
+          <Button variant={timeRange === 6 ? 'default' : 'outline'} size="sm" onClick={() => setTimeRange(6)}>
             6h
           </Button>
-          <Button
-            variant={timeRange === 24 ? 'default' : 'outline'}
-            size="sm"
-            onClick={() => setTimeRange(24)}
-          >
+          <Button variant={timeRange === 24 ? 'default' : 'outline'} size="sm" onClick={() => setTimeRange(24)}>
             24h
           </Button>
         </div>
@@ -176,9 +163,7 @@ export const DockerOverview: React.FC = () => {
                 {container.server} / {container.name}
               </Badge>
             ))}
-            {allContainers.size === 0 && (
-              <p className="text-sm text-gray-500">No containers found</p>
-            )}
+            {allContainers.size === 0 && <p className="text-sm text-gray-500">No containers found</p>}
           </div>
         </CardContent>
       </Card>
@@ -191,7 +176,7 @@ export const DockerOverview: React.FC = () => {
         <CardContent>
           {chartData.length > 0 ? (
             <ResponsiveContainer width="100%" height={300}>
-              <AreaChart animationDuration={300} data={chartData}>
+              <AreaChart data={chartData}>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="timestamp" />
                 <YAxis />
@@ -228,7 +213,7 @@ export const DockerOverview: React.FC = () => {
         <CardContent>
           {chartData.length > 0 ? (
             <ResponsiveContainer width="100%" height={300}>
-              <AreaChart animationDuration={300} data={chartData}>
+              <AreaChart data={chartData}>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="timestamp" />
                 <YAxis />

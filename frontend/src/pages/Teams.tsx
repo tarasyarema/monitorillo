@@ -104,18 +104,14 @@ export const Teams: React.FC = () => {
                   <CardTitle className="text-xl">{team.name}</CardTitle>
                   <CardDescription className="mt-1">@{team.slug}</CardDescription>
                 </div>
-                {currentTeam?.id === team.id && (
-                  <Badge variant="success">Active</Badge>
-                )}
+                {currentTeam?.id === team.id && <Badge variant="success">Active</Badge>}
               </div>
             </CardHeader>
             <CardContent>
               <div className="text-sm text-gray-600">
                 {team.members?.length || 0} member{team.members?.length !== 1 ? 's' : ''}
               </div>
-              <div className="text-xs text-gray-500 mt-2">
-                Created {new Date(team.created_at).toLocaleDateString()}
-              </div>
+              <div className="text-xs text-gray-500 mt-2">Created {new Date(team.created_at).toLocaleDateString()}</div>
             </CardContent>
           </Card>
         ))}

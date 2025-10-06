@@ -67,18 +67,10 @@ export const Alerts: React.FC = () => {
       <div className="flex justify-between items-center">
         <h1 className="text-3xl font-bold">Alerts</h1>
         <div className="flex gap-2">
-          <Button
-            variant={filter === undefined ? 'default' : 'outline'}
-            size="sm"
-            onClick={() => setFilter(undefined)}
-          >
+          <Button variant={filter === undefined ? 'default' : 'outline'} size="sm" onClick={() => setFilter(undefined)}>
             All ({alerts?.length || 0})
           </Button>
-          <Button
-            variant={filter === 'new' ? 'default' : 'outline'}
-            size="sm"
-            onClick={() => setFilter('new')}
-          >
+          <Button variant={filter === 'new' ? 'default' : 'outline'} size="sm" onClick={() => setFilter('new')}>
             New ({newAlerts.length})
           </Button>
           <Button
@@ -149,12 +141,10 @@ export const Alerts: React.FC = () => {
 
                   <div className="text-sm text-gray-600 space-y-1">
                     <div>
-                      Value: <span className="font-medium">{alert.value.toFixed(1)}%</span> (
-                      Threshold: {alert.threshold.toFixed(1)}%)
+                      Value: <span className="font-medium">{alert.value.toFixed(1)}%</span> ( Threshold:{' '}
+                      {alert.threshold.toFixed(1)}%)
                     </div>
-                    <div>
-                      Triggered {formatDistanceToNow(new Date(alert.triggered_at), { addSuffix: true })}
-                    </div>
+                    <div>Triggered {formatDistanceToNow(new Date(alert.triggered_at), { addSuffix: true })}</div>
                     {alert.acknowledged_at && (
                       <div className="text-green-600">
                         Acknowledged {formatDistanceToNow(new Date(alert.acknowledged_at), { addSuffix: true })}

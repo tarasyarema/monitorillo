@@ -176,10 +176,10 @@ export const Dashboard: React.FC = () => {
                           server.status === 'online'
                             ? 'success'
                             : server.status === 'critical'
-                            ? 'destructive'
-                            : server.status === 'warning'
-                            ? 'warning'
-                            : 'secondary'
+                              ? 'destructive'
+                              : server.status === 'warning'
+                                ? 'warning'
+                                : 'secondary'
                         }
                       >
                         {server.status}
@@ -187,9 +187,7 @@ export const Dashboard: React.FC = () => {
                     </div>
                     <div className="text-xs text-gray-500">
                       {server.last_seen_at ? (
-                        <span>
-                          Last seen {formatDistanceToNow(new Date(server.last_seen_at), { addSuffix: true })}
-                        </span>
+                        <span>Last seen {formatDistanceToNow(new Date(server.last_seen_at), { addSuffix: true })}</span>
                       ) : (
                         <span className="text-gray-400">Never seen</span>
                       )}

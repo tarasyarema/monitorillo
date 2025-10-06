@@ -21,7 +21,7 @@ export const SystemOverview: React.FC = () => {
     queryKey: ['all-servers-metrics', servers?.map((s: any) => s.id), timeRange],
     queryFn: async () => {
       if (!servers || servers.length === 0) return [];
-      
+
       const metricsPromises = servers.map((server: any) =>
         metricsApi.getHistory(server.id, timeRange).then((data) => ({
           serverId: server.id,
@@ -29,7 +29,7 @@ export const SystemOverview: React.FC = () => {
           metrics: data,
         }))
       );
-      
+
       return Promise.all(metricsPromises);
     },
     enabled: !!servers && servers.length > 0,
@@ -47,14 +47,14 @@ export const SystemOverview: React.FC = () => {
 
       serverData.metrics.system.forEach((metric: any) => {
         const timestamp = new Date(metric.timestamp).toLocaleTimeString();
-        
+
         if (!timestampMap.has(timestamp)) {
           timestampMap.set(timestamp, { timestamp });
         }
 
         const point = timestampMap.get(timestamp);
         const partitions = Object.values(metric.value.disk?.partitions || {}) as any[];
-        
+
         point[`${serverData.serverName}_cpu`] = metric.value.cpu?.usage_percent || 0;
         point[`${serverData.serverName}_memory`] = metric.value.memory?.used_percent || 0;
         point[`${serverData.serverName}_disk`] = partitions[0]?.used_percent || 0;
@@ -65,7 +65,7 @@ export const SystemOverview: React.FC = () => {
   };
 
   const chartData = prepareChartData();
-  
+
   const colors = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#14b8a6', '#f97316'];
 
   if (!currentTeam) {
@@ -106,25 +106,13 @@ export const SystemOverview: React.FC = () => {
           <div className="flex justify-between items-center">
             <CardTitle>All Servers - {selectedMetric.toUpperCase()} Usage</CardTitle>
             <div className="flex gap-2">
-              <Button
-                variant={timeRange === 1 ? 'default' : 'outline'}
-                size="sm"
-                onClick={() => setTimeRange(1)}
-              >
+              <Button variant={timeRange === 1 ? 'default' : 'outline'} size="sm" onClick={() => setTimeRange(1)}>
                 1h
               </Button>
-              <Button
-                variant={timeRange === 6 ? 'default' : 'outline'}
-                size="sm"
-                onClick={() => setTimeRange(6)}
-              >
+              <Button variant={timeRange === 6 ? 'default' : 'outline'} size="sm" onClick={() => setTimeRange(6)}>
                 6h
               </Button>
-              <Button
-                variant={timeRange === 24 ? 'default' : 'outline'}
-                size="sm"
-                onClick={() => setTimeRange(24)}
-              >
+              <Button variant={timeRange === 24 ? 'default' : 'outline'} size="sm" onClick={() => setTimeRange(24)}>
                 24h
               </Button>
             </div>
@@ -133,7 +121,7 @@ export const SystemOverview: React.FC = () => {
         <CardContent>
           {chartData.length > 0 ? (
             <ResponsiveContainer width="100%" height={400}>
-              <LineChart animationDuration={300} data={chartData}>
+              <LineChart data={chartData}>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="timestamp" />
                 <YAxis domain={[0, 100]} />
@@ -152,9 +140,7 @@ export const SystemOverview: React.FC = () => {
               </LineChart>
             </ResponsiveContainer>
           ) : (
-            <div className="text-center py-12 text-gray-500">
-              No metrics data available
-            </div>
+            <div className="text-center py-12 text-gray-500">No metrics data available</div>
           )}
         </CardContent>
       </Card>
