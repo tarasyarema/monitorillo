@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { servicesApi, healthChecksApi, versionChecksApi, deploymentsApi } from '../lib/api';
-import { Service, HealthCheck, VersionCheck, Deployment, HealthCheckResult, VersionCheckResult } from '../types';
+import { HealthCheck, VersionCheck, Deployment, HealthCheckResult, VersionCheckResult } from '../types';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/form-field';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
@@ -10,7 +10,6 @@ import { Alert, AlertDescription } from '../components/ui/alert';
 import { Badge } from '../components/ui/badge';
 import { safeToLocaleDateString } from '../lib/utils';
 import {
-  LineChart,
   Line,
   XAxis,
   YAxis,
@@ -70,7 +69,7 @@ export const ServiceDetail: React.FC = () => {
     enabled: !!serviceId,
   });
 
-  const { data: deployments, isLoading: deploymentsLoading } = useQuery({
+  const { data: deployments } = useQuery({
     queryKey: ['deployments', serviceId],
     queryFn: () => deploymentsApi.list(Number(serviceId), 50),
     enabled: !!serviceId,
@@ -82,9 +81,7 @@ export const ServiceDetail: React.FC = () => {
     queryFn: async () => {
       if (!healthChecks || healthChecks.length === 0) return [];
       const results = await Promise.all(
-        healthChecks.map(check =>
-          healthChecksApi.getResults(check.id, 24).catch(() => [])
-        )
+        healthChecks.map((check: HealthCheck) => healthChecksApi.getResults(check.id, 24).catch(() => []))
       );
       return results.flat();
     },
@@ -96,9 +93,7 @@ export const ServiceDetail: React.FC = () => {
     queryFn: async () => {
       if (!versionChecks || versionChecks.length === 0) return [];
       const results = await Promise.all(
-        versionChecks.map(check =>
-          versionChecksApi.getResults(check.id, 24).catch(() => [])
-        )
+        versionChecks.map((check: VersionCheck) => versionChecksApi.getResults(check.id, 24).catch(() => []))
       );
       return results.flat();
     },
@@ -121,8 +116,7 @@ export const ServiceDetail: React.FC = () => {
   });
 
   const updateHealthCheckMutation = useMutation({
-    mutationFn: ({ checkId, data }: { checkId: number; data: any }) =>
-      healthChecksApi.update(checkId, data),
+    mutationFn: ({ checkId, data }: { checkId: number; data: any }) => healthChecksApi.update(checkId, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['healthChecks', serviceId] });
       setEditingHealthCheck(null);
@@ -182,8 +176,7 @@ export const ServiceDetail: React.FC = () => {
   });
 
   const updateVersionCheckMutation = useMutation({
-    mutationFn: ({ checkId, data }: { checkId: number; data: any }) =>
-      versionChecksApi.update(checkId, data),
+    mutationFn: ({ checkId, data }: { checkId: number; data: any }) => versionChecksApi.update(checkId, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['versionChecks', serviceId] });
       setEditingVersionCheck(null);
@@ -346,7 +339,6 @@ export const ServiceDetail: React.FC = () => {
 
   // Build chart data for timeline visualization
   const buildChartData = () => {
-    const dataPoints: any[] = [];
     const timestampMap = new Map<number, any>();
 
     // Process health check results
@@ -394,8 +386,8 @@ export const ServiceDetail: React.FC = () => {
 
     // Find max latency value for positioning deployment markers
     let maxLatency = 0;
-    sortedData.forEach(point => {
-      Object.keys(point).forEach(key => {
+    sortedData.forEach((point) => {
+      Object.keys(point).forEach((key) => {
         if (key !== 'timestamp' && key !== 'time' && key !== 'fullTime' && typeof point[key] === 'number') {
           maxLatency = Math.max(maxLatency, point[key]);
         }
@@ -406,7 +398,7 @@ export const ServiceDetail: React.FC = () => {
     if (deployments) {
       deployments.forEach((deployment: Deployment, index: number) => {
         const timestamp = new Date(deployment.detected_at).getTime();
-        const existingPoint = sortedData.find(d => d.timestamp === timestamp);
+        const existingPoint = sortedData.find((d) => d.timestamp === timestamp);
 
         const deploymentMarkerValue = maxLatency * 1.15; // 15% above max
         const deploymentType = getDeploymentType(index, deployments);
@@ -435,7 +427,7 @@ export const ServiceDetail: React.FC = () => {
   const chartData = buildChartData();
 
   // Count how many deployments are in the chart
-  const deploymentCount = chartData.filter(d => d.deployment).length;
+  const deploymentCount = chartData.filter((d) => d.deployment).length;
 
   // Get unique check names for line colors
   const allCheckNames = new Set<string>();
@@ -450,7 +442,7 @@ export const ServiceDetail: React.FC = () => {
   // Color palette for different checks
   const colors = ['#10b981', '#3b82f6', '#f59e0b', '#8b5cf6', '#ec4899', '#06b6d4'];
 
-  const CustomTooltip = ({ active, payload, label }: any) => {
+  const CustomTooltip = ({ active, payload }: any) => {
     if (active && payload && payload.length) {
       const dataPoint = payload[0]?.payload;
 
@@ -477,10 +469,7 @@ export const ServiceDetail: React.FC = () => {
               allCheckData.map((entry, index) => (
                 <div key={index} className="flex justify-between items-center gap-4">
                   <div className="flex items-center gap-2">
-                    <div
-                      className="w-3 h-3 rounded-full"
-                      style={{ backgroundColor: entry.color }}
-                    />
+                    <div className="w-3 h-3 rounded-full" style={{ backgroundColor: entry.color }} />
                     <span className="text-sm">{entry.name}</span>
                   </div>
                   <span className="text-sm font-mono font-medium" style={{ color: entry.color }}>
@@ -489,21 +478,20 @@ export const ServiceDetail: React.FC = () => {
                 </div>
               ))
             ) : (
-              <div className="text-sm text-gray-500 italic">
-                No health or version checks at this time
-              </div>
+              <div className="text-sm text-gray-500 italic">No health or version checks at this time</div>
             )}
             {dataPoint?.deployment && (
-              <div className={allCheckData.length > 0 ? "mt-2 pt-2 border-t" : ""}>
+              <div className={allCheckData.length > 0 ? 'mt-2 pt-2 border-t' : ''}>
                 <div className="flex items-center gap-2">
                   <span className="text-lg">{dataPoint.deploymentType === 'upgrade' ? '🚀' : '⏪'}</span>
                   <div>
-                    <div className="text-sm font-medium" style={{ color: dataPoint.deploymentType === 'upgrade' ? '#10b981' : '#ef4444' }}>
+                    <div
+                      className="text-sm font-medium"
+                      style={{ color: dataPoint.deploymentType === 'upgrade' ? '#10b981' : '#ef4444' }}
+                    >
                       {dataPoint.deploymentType === 'upgrade' ? 'Upgrade' : 'Rollback'}
                     </div>
-                    <div className="text-xs text-gray-600 font-mono">
-                      v{dataPoint.deploymentVersion}
-                    </div>
+                    <div className="text-xs text-gray-600 font-mono">v{dataPoint.deploymentVersion}</div>
                   </div>
                 </div>
               </div>
@@ -582,7 +570,9 @@ export const ServiceDetail: React.FC = () => {
           <div className="flex justify-between items-start">
             <div className="flex-1">
               <CardTitle>Activity Timeline (Last 24h)</CardTitle>
-              <CardDescription>Response times for health checks and version checks with deployment markers</CardDescription>
+              <CardDescription>
+                Response times for health checks and version checks with deployment markers
+              </CardDescription>
             </div>
             <div className="flex items-center gap-4 text-xs">
               <div className="flex items-center gap-2">
@@ -603,10 +593,13 @@ export const ServiceDetail: React.FC = () => {
         <CardContent>
           {chartData.length === 0 ? (
             <div className="text-center text-gray-500 py-8">
-              <p className="mb-2">No activity in the last 24 hours. Enable health checks or version checks to start tracking.</p>
+              <p className="mb-2">
+                No activity in the last 24 hours. Enable health checks or version checks to start tracking.
+              </p>
               {deployments && deployments.length > 0 && (
                 <p className="text-xs mt-4">
-                  {deployments.length} deployment{deployments.length > 1 ? 's' : ''} detected (showing in deployment history below)
+                  {deployments.length} deployment{deployments.length > 1 ? 's' : ''} detected (showing in deployment
+                  history below)
                 </p>
               )}
             </div>
@@ -618,76 +611,71 @@ export const ServiceDetail: React.FC = () => {
                 </div>
               )}
               <div className="w-full" style={{ height: '400px' }}>
-              <ResponsiveContainer width="100%" height="100%">
-                <ComposedChart data={chartData} margin={{ top: 25, right: 30, left: 20, bottom: 5 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                  <XAxis
-                    dataKey="time"
-                    stroke="#6b7280"
-                    style={{ fontSize: '12px' }}
-                    tick={{ fill: '#6b7280' }}
-                  />
-                  <YAxis
-                    label={{ value: 'Latency (ms)', angle: -90, position: 'insideLeft', style: { fill: '#6b7280' } }}
-                    stroke="#6b7280"
-                    style={{ fontSize: '12px' }}
-                    tick={{ fill: '#6b7280' }}
-                  />
-                  <Tooltip content={<CustomTooltip />} />
-                  <Legend wrapperStyle={{ fontSize: '12px' }} />
-
-                  {/* Lines for each check */}
-                  {checkNamesArray.map((checkName, index) => (
-                    <Line
-                      key={checkName}
-                      type="monotone"
-                      dataKey={checkName}
-                      stroke={colors[index % colors.length]}
-                      strokeWidth={2}
-                      dot={{ r: 3 }}
-                      activeDot={{ r: 5 }}
-                      connectNulls
+                <ResponsiveContainer width="100%" height="100%">
+                  <ComposedChart data={chartData} margin={{ top: 25, right: 30, left: 20, bottom: 5 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                    <XAxis dataKey="time" stroke="#6b7280" style={{ fontSize: '12px' }} tick={{ fill: '#6b7280' }} />
+                    <YAxis
+                      label={{ value: 'Latency (ms)', angle: -90, position: 'insideLeft', style: { fill: '#6b7280' } }}
+                      stroke="#6b7280"
+                      style={{ fontSize: '12px' }}
+                      tick={{ fill: '#6b7280' }}
                     />
-                  ))}
+                    <Tooltip content={<CustomTooltip />} />
+                    <Legend wrapperStyle={{ fontSize: '12px' }} />
 
-                  {/* Deployment markers as scatter plot */}
-                  <Scatter
-                    dataKey="deployment"
-                    fill="#8884d8"
-                    shape={(props: any) => {
-                      const { cx, cy, payload } = props;
-                      if (!payload.deployment) return null;
+                    {/* Lines for each check */}
+                    {checkNamesArray.map((checkName, index) => (
+                      <Line
+                        key={checkName}
+                        type="monotone"
+                        dataKey={checkName}
+                        stroke={colors[index % colors.length]}
+                        strokeWidth={2}
+                        dot={{ r: 3 }}
+                        activeDot={{ r: 5 }}
+                        connectNulls
+                      />
+                    ))}
 
-                      const isUpgrade = payload.deploymentType === 'upgrade';
-                      const color = isUpgrade ? '#10b981' : '#ef4444';
-                      const size = 12;
+                    {/* Deployment markers as scatter plot */}
+                    <Scatter
+                      dataKey="deployment"
+                      fill="#8884d8"
+                      shape={(props: any) => {
+                        const { cx, cy, payload } = props;
+                        if (!payload.deployment) return <g />;
 
-                      return (
-                        <g>
-                          {/* Triangle pointing down */}
-                          <polygon
-                            points={`${cx},${cy + size} ${cx - size},${cy - size} ${cx + size},${cy - size}`}
-                            fill={color}
-                            stroke={color}
-                            strokeWidth={2}
-                          />
-                          {/* Version label */}
-                          <text
-                            x={cx}
-                            y={cy - size - 5}
-                            textAnchor="middle"
-                            fill={color}
-                            fontSize="11"
-                            fontWeight="bold"
-                          >
-                            {payload.deploymentVersion}
-                          </text>
-                        </g>
-                      );
-                    }}
-                  />
-                </ComposedChart>
-              </ResponsiveContainer>
+                        const isUpgrade = payload.deploymentType === 'upgrade';
+                        const color = isUpgrade ? '#10b981' : '#ef4444';
+                        const size = 12;
+
+                        return (
+                          <g>
+                            {/* Triangle pointing down */}
+                            <polygon
+                              points={`${cx},${cy + size} ${cx - size},${cy - size} ${cx + size},${cy - size}`}
+                              fill={color}
+                              stroke={color}
+                              strokeWidth={2}
+                            />
+                            {/* Version label */}
+                            <text
+                              x={cx}
+                              y={cy - size - 5}
+                              textAnchor="middle"
+                              fill={color}
+                              fontSize="11"
+                              fontWeight="bold"
+                            >
+                              {payload.deploymentVersion}
+                            </text>
+                          </g>
+                        );
+                      }}
+                    />
+                  </ComposedChart>
+                </ResponsiveContainer>
               </div>
             </>
           )}
@@ -698,13 +686,15 @@ export const ServiceDetail: React.FC = () => {
       <div>
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-2xl font-bold">Health Checks</h2>
-          <Button onClick={() => {
-            if (editingHealthCheck) {
-              setEditingHealthCheck(null);
-              resetHealthCheckForm();
-            }
-            setShowHealthCheckForm(!showHealthCheckForm);
-          }}>
+          <Button
+            onClick={() => {
+              if (editingHealthCheck) {
+                setEditingHealthCheck(null);
+                resetHealthCheckForm();
+              }
+              setShowHealthCheckForm(!showHealthCheckForm);
+            }}
+          >
             {showHealthCheckForm ? 'Cancel' : 'Add Health Check'}
           </Button>
         </div>
@@ -756,19 +746,11 @@ export const ServiceDetail: React.FC = () => {
                   </div>
                   <div>
                     <label className="block text-sm font-medium mb-1">Interval (minutes)</label>
-                    <Input
-                      type="number"
-                      value={hcInterval}
-                      onChange={(e) => setHcInterval(e.target.value)}
-                    />
+                    <Input type="number" value={hcInterval} onChange={(e) => setHcInterval(e.target.value)} />
                   </div>
                   <div>
                     <label className="block text-sm font-medium mb-1">Timeout (seconds)</label>
-                    <Input
-                      type="number"
-                      value={hcTimeout}
-                      onChange={(e) => setHcTimeout(e.target.value)}
-                    />
+                    <Input type="number" value={hcTimeout} onChange={(e) => setHcTimeout(e.target.value)} />
                   </div>
                   <div>
                     <label className="block text-sm font-medium mb-1">JSON Path (optional)</label>
@@ -788,7 +770,10 @@ export const ServiceDetail: React.FC = () => {
                   </div>
                 </div>
                 <div className="flex gap-2">
-                  <Button type="submit" disabled={createHealthCheckMutation.isPending || updateHealthCheckMutation.isPending}>
+                  <Button
+                    type="submit"
+                    disabled={createHealthCheckMutation.isPending || updateHealthCheckMutation.isPending}
+                  >
                     {editingHealthCheck ? 'Update' : 'Create'} Health Check
                   </Button>
                   {editingHealthCheck && (
@@ -852,11 +837,7 @@ export const ServiceDetail: React.FC = () => {
                     >
                       Run Now
                     </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => loadHealthCheckForEdit(check)}
-                    >
+                    <Button size="sm" variant="outline" onClick={() => loadHealthCheckForEdit(check)}>
                       Edit
                     </Button>
                     <Button
@@ -902,13 +883,15 @@ export const ServiceDetail: React.FC = () => {
       <div>
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-2xl font-bold">Version Checks</h2>
-          <Button onClick={() => {
-            if (editingVersionCheck) {
-              setEditingVersionCheck(null);
-              resetVersionCheckForm();
-            }
-            setShowVersionCheckForm(!showVersionCheckForm);
-          }}>
+          <Button
+            onClick={() => {
+              if (editingVersionCheck) {
+                setEditingVersionCheck(null);
+                resetVersionCheckForm();
+              }
+              setShowVersionCheckForm(!showVersionCheckForm);
+            }}
+          >
             {showVersionCheckForm ? 'Cancel' : 'Add Version Check'}
           </Button>
         </div>
@@ -948,23 +931,18 @@ export const ServiceDetail: React.FC = () => {
                   </div>
                   <div>
                     <label className="block text-sm font-medium mb-1">Interval (minutes)</label>
-                    <Input
-                      type="number"
-                      value={vcInterval}
-                      onChange={(e) => setVcInterval(e.target.value)}
-                    />
+                    <Input type="number" value={vcInterval} onChange={(e) => setVcInterval(e.target.value)} />
                   </div>
                   <div>
                     <label className="block text-sm font-medium mb-1">Timeout (seconds)</label>
-                    <Input
-                      type="number"
-                      value={vcTimeout}
-                      onChange={(e) => setVcTimeout(e.target.value)}
-                    />
+                    <Input type="number" value={vcTimeout} onChange={(e) => setVcTimeout(e.target.value)} />
                   </div>
                 </div>
                 <div className="flex gap-2">
-                  <Button type="submit" disabled={createVersionCheckMutation.isPending || updateVersionCheckMutation.isPending}>
+                  <Button
+                    type="submit"
+                    disabled={createVersionCheckMutation.isPending || updateVersionCheckMutation.isPending}
+                  >
                     {editingVersionCheck ? 'Update' : 'Create'} Version Check
                   </Button>
                   {editingVersionCheck && (
@@ -1025,11 +1003,7 @@ export const ServiceDetail: React.FC = () => {
                     >
                       Run Now
                     </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => loadVersionCheckForEdit(check)}
-                    >
+                    <Button size="sm" variant="outline" onClick={() => loadVersionCheckForEdit(check)}>
                       Edit
                     </Button>
                     <Button

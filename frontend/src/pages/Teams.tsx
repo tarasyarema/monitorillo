@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { teamsApi } from '../lib/api';
 import { useAppStore } from '../lib/store';
-import { Team } from '../types';
+import { Team, TeamMember } from '../types';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/form-field';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
@@ -58,9 +58,9 @@ export const Teams: React.FC = () => {
   }
 
   // Check if user can manage invitations (owner or admin)
-  const currentTeamMember = teams?.find((t: Team) => t.id === currentTeam?.id)?.members?.find(
-    (m) => m.user_id === teams[0]?.members?.[0]?.user_id
-  );
+  const currentTeamMember = teams
+    ?.find((t: Team) => t.id === currentTeam?.id)
+    ?.members?.find((m: TeamMember) => m.user_id === teams[0]?.members?.[0]?.user_id);
   const canManageInvitations = currentTeamMember?.role === 'owner' || currentTeamMember?.role === 'admin';
 
   return (

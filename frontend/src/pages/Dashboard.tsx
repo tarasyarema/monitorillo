@@ -44,7 +44,6 @@ export const Dashboard: React.FC = () => {
 
   const onlineServers = servers?.filter((s: Server) => s.status === 'online') || [];
   const offlineServers = servers?.filter((s: Server) => s.status === 'offline') || [];
-  const warningServers = servers?.filter((s: Server) => s.status === 'warning') || [];
   const criticalServers = servers?.filter((s: Server) => s.status === 'critical') || [];
   const newAlerts = alerts?.filter((a: Alert) => a.state === 'new') || [];
   const activeAlerts = alerts?.filter((a: Alert) => a.state === 'new' || a.state === 'acknowledged') || [];
@@ -52,7 +51,6 @@ export const Dashboard: React.FC = () => {
   const healthyServices = services?.filter((s: Service) => s.status === 'healthy') || [];
   const degradedServices = services?.filter((s: Service) => s.status === 'degraded') || [];
   const unhealthyServices = services?.filter((s: Service) => s.status === 'unhealthy') || [];
-  const unknownServices = services?.filter((s: Service) => s.status === 'unknown') || [];
 
   return (
     <div className="space-y-6">
@@ -117,7 +115,9 @@ export const Dashboard: React.FC = () => {
             <CardTitle className="text-sm font-medium text-gray-600">Degraded Services</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold text-yellow-600">{degradedServices.length + unhealthyServices.length}</div>
+            <div className="text-3xl font-bold text-yellow-600">
+              {degradedServices.length + unhealthyServices.length}
+            </div>
             <p className="text-xs text-gray-500 mt-1">Need attention</p>
           </CardContent>
         </Card>
@@ -258,9 +258,7 @@ export const Dashboard: React.FC = () => {
                     <div className="flex justify-between items-start mb-2">
                       <div className="flex-1">
                         <h4 className="font-medium">{service.name}</h4>
-                        {service.description && (
-                          <p className="text-xs text-gray-600 truncate">{service.description}</p>
-                        )}
+                        {service.description && <p className="text-xs text-gray-600 truncate">{service.description}</p>}
                       </div>
                       <Badge
                         variant={

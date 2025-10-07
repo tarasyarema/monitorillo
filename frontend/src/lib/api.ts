@@ -213,7 +213,10 @@ export const servicesApi = {
     return response.data;
   },
 
-  create: async (teamId: number, data: { name: string; description?: string; version_url?: string; version_json_path?: string }) => {
+  create: async (
+    teamId: number,
+    data: { name: string; description?: string; version_url?: string; version_json_path?: string }
+  ) => {
     const response = await api.post(`/api/v1/teams/${teamId}/services`, data);
     return response.data;
   },
@@ -223,7 +226,10 @@ export const servicesApi = {
     return response.data;
   },
 
-  update: async (serviceId: number, data: { name?: string; description?: string; version_url?: string; version_json_path?: string }) => {
+  update: async (
+    serviceId: number,
+    data: { name?: string; description?: string; version_url?: string; version_json_path?: string }
+  ) => {
     const response = await api.patch(`/api/v1/services/${serviceId}`, data);
     return response.data;
   },
@@ -240,36 +246,42 @@ export const healthChecksApi = {
     return response.data;
   },
 
-  create: async (serviceId: number, data: {
-    name: string;
-    url: string;
-    method?: string;
-    headers?: Record<string, string>;
-    body?: string;
-    expected_status_code?: number;
-    timeout_seconds?: number;
-    check_interval_minutes?: number;
-    json_path?: string;
-    expected_value?: string;
-    enabled?: boolean;
-  }) => {
+  create: async (
+    serviceId: number,
+    data: {
+      name: string;
+      url: string;
+      method?: string;
+      headers?: Record<string, string>;
+      body?: string;
+      expected_status_code?: number;
+      timeout_seconds?: number;
+      check_interval_minutes?: number;
+      json_path?: string;
+      expected_value?: string;
+      enabled?: boolean;
+    }
+  ) => {
     const response = await api.post(`/api/v1/services/${serviceId}/health-checks`, data);
     return response.data;
   },
 
-  update: async (checkId: number, data: {
-    name?: string;
-    url?: string;
-    method?: string;
-    headers?: Record<string, string>;
-    body?: string;
-    expected_status_code?: number;
-    timeout_seconds?: number;
-    check_interval_minutes?: number;
-    json_path?: string;
-    expected_value?: string;
-    enabled?: boolean;
-  }) => {
+  update: async (
+    checkId: number,
+    data: {
+      name?: string;
+      url?: string;
+      method?: string;
+      headers?: Record<string, string>;
+      body?: string;
+      expected_status_code?: number;
+      timeout_seconds?: number;
+      check_interval_minutes?: number;
+      json_path?: string;
+      expected_value?: string;
+      enabled?: boolean;
+    }
+  ) => {
     const response = await api.patch(`/api/v1/health-checks/${checkId}`, data);
     return response.data;
   },
@@ -298,26 +310,32 @@ export const versionChecksApi = {
     return response.data;
   },
 
-  create: async (serviceId: number, data: {
-    name: string;
-    url: string;
-    json_path: string;
-    timeout_seconds?: number;
-    check_interval_minutes?: number;
-    enabled?: boolean;
-  }) => {
+  create: async (
+    serviceId: number,
+    data: {
+      name: string;
+      url: string;
+      json_path: string;
+      timeout_seconds?: number;
+      check_interval_minutes?: number;
+      enabled?: boolean;
+    }
+  ) => {
     const response = await api.post(`/api/v1/services/${serviceId}/version-checks`, data);
     return response.data;
   },
 
-  update: async (checkId: number, data: {
-    name?: string;
-    url?: string;
-    json_path?: string;
-    timeout_seconds?: number;
-    check_interval_minutes?: number;
-    enabled?: boolean;
-  }) => {
+  update: async (
+    checkId: number,
+    data: {
+      name?: string;
+      url?: string;
+      json_path?: string;
+      timeout_seconds?: number;
+      check_interval_minutes?: number;
+      enabled?: boolean;
+    }
+  ) => {
     const response = await api.patch(`/api/v1/version-checks/${checkId}`, data);
     return response.data;
   },

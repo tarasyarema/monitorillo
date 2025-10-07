@@ -25,8 +25,7 @@ export const AcceptInvitation: React.FC = () => {
     },
     onError: (err: any) => {
       setError(
-        err.response?.data?.detail ||
-          'Failed to accept invitation. The invitation may have expired or been revoked.'
+        err.response?.data?.detail || 'Failed to accept invitation. The invitation may have expired or been revoked.'
       );
       setSuccess(false);
     },
@@ -49,7 +48,7 @@ export const AcceptInvitation: React.FC = () => {
       <Card className="w-full max-w-md">
         <CardHeader>
           <CardTitle>Team Invitation</CardTitle>
-          <CardDescription>You've been invited to join a team</CardDescription>
+          <CardDescription>You&apos;ve been invited to join a team</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           {error && (
@@ -59,9 +58,7 @@ export const AcceptInvitation: React.FC = () => {
           )}
           {success && (
             <Alert>
-              <AlertDescription>
-                Invitation accepted successfully! Redirecting to teams page...
-              </AlertDescription>
+              <AlertDescription>Invitation accepted successfully! Redirecting to teams page...</AlertDescription>
             </Alert>
           )}
           {!error && !success && token && (
@@ -69,11 +66,7 @@ export const AcceptInvitation: React.FC = () => {
               <p className="text-sm text-gray-600">
                 Click the button below to accept the invitation and join the team.
               </p>
-              <Button
-                onClick={handleAccept}
-                disabled={acceptInvitationMutation.isPending}
-                className="w-full"
-              >
+              <Button onClick={handleAccept} disabled={acceptInvitationMutation.isPending} className="w-full">
                 {acceptInvitationMutation.isPending ? 'Accepting...' : 'Accept Invitation'}
               </Button>
             </>

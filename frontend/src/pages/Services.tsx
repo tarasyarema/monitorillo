@@ -29,12 +29,8 @@ export const Services: React.FC = () => {
   });
 
   const createServiceMutation = useMutation({
-    mutationFn: (data: {
-      name: string;
-      description?: string;
-      version_url?: string;
-      version_json_path?: string;
-    }) => servicesApi.create(currentTeam!.id, data),
+    mutationFn: (data: { name: string; description?: string; version_url?: string; version_json_path?: string }) =>
+      servicesApi.create(currentTeam!.id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['services', currentTeam?.id] });
       setName('');
@@ -108,9 +104,7 @@ export const Services: React.FC = () => {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h1 className="text-3xl font-bold">Services</h1>
-        <Button onClick={() => setShowCreateForm(!showCreateForm)}>
-          {showCreateForm ? 'Cancel' : 'Add Service'}
-        </Button>
+        <Button onClick={() => setShowCreateForm(!showCreateForm)}>{showCreateForm ? 'Cancel' : 'Add Service'}</Button>
       </div>
 
       {error && (
@@ -123,19 +117,13 @@ export const Services: React.FC = () => {
         <Card>
           <CardHeader>
             <CardTitle>Add New Service</CardTitle>
-            <CardDescription>
-              Create a service to monitor its health and track deployments
-            </CardDescription>
+            <CardDescription>Create a service to monitor its health and track deployments</CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
                 <label className="block text-sm font-medium mb-1">Service Name *</label>
-                <Input
-                  placeholder="e.g., API Server"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                />
+                <Input placeholder="e.g., API Server" value={name} onChange={(e) => setName(e.target.value)} />
               </div>
               <div>
                 <label className="block text-sm font-medium mb-1">Description</label>
@@ -154,9 +142,7 @@ export const Services: React.FC = () => {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium mb-1">
-                  Version JSON Path (optional)
-                </label>
+                <label className="block text-sm font-medium mb-1">Version JSON Path (optional)</label>
                 <Input
                   placeholder="e.g., version or data.version"
                   value={versionJsonPath}
@@ -178,9 +164,7 @@ export const Services: React.FC = () => {
               <div className="flex justify-between items-start">
                 <div className="flex-1" onClick={() => navigate(`/services/${service.id}`)}>
                   <CardTitle className="text-xl">{service.name}</CardTitle>
-                  {service.description && (
-                    <CardDescription className="mt-1">{service.description}</CardDescription>
-                  )}
+                  {service.description && <CardDescription className="mt-1">{service.description}</CardDescription>}
                 </div>
                 <Badge variant={getStatusBadgeVariant(service.status)}>{service.status}</Badge>
               </div>
@@ -197,9 +181,7 @@ export const Services: React.FC = () => {
                   Last checked: {safeToLocaleDateString(service.last_version_check)}
                 </div>
               )}
-              <div className="text-xs text-gray-500 mt-2">
-                Created {safeToLocaleDateString(service.created_at)}
-              </div>
+              <div className="text-xs text-gray-500 mt-2">Created {safeToLocaleDateString(service.created_at)}</div>
               <div className="mt-4 flex gap-2" onClick={(e) => e.stopPropagation()}>
                 <Button
                   size="sm"

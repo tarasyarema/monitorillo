@@ -28,8 +28,7 @@ export const TeamInvitations: React.FC<TeamInvitationsProps> = ({ teamId, canMan
   });
 
   const createInvitationMutation = useMutation({
-    mutationFn: (data: { email: string; role: string }) =>
-      invitationsApi.create(teamId, data.email, data.role),
+    mutationFn: (data: { email: string; role: string }) => invitationsApi.create(teamId, data.email, data.role),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['invitations', teamId] });
       setEmail('');
@@ -69,7 +68,7 @@ export const TeamInvitations: React.FC<TeamInvitationsProps> = ({ teamId, canMan
     return (
       <Card>
         <CardContent className="text-center py-8">
-          <p className="text-gray-600">You don't have permission to manage invitations.</p>
+          <p className="text-gray-600">You don&apos;t have permission to manage invitations.</p>
         </CardContent>
       </Card>
     );
@@ -159,9 +158,7 @@ export const TeamInvitations: React.FC<TeamInvitationsProps> = ({ teamId, canMan
                     )}
                   </div>
                   <div className="flex items-center gap-2">
-                    <Badge variant={getStatusBadgeVariant(invitation.status)}>
-                      {invitation.status}
-                    </Badge>
+                    <Badge variant={getStatusBadgeVariant(invitation.status)}>{invitation.status}</Badge>
                     {invitation.status === 'pending' && (
                       <Button
                         variant="destructive"
