@@ -2,8 +2,9 @@ from datetime import datetime, timedelta
 from sqlalchemy import select, and_, desc
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.alert import Alert, AlertConfig
+from app.models.alert import Alert, AlertConfig, Notification
 from app.models.server import Server, Metric
+from app.services.notifier import NotificationService
 
 
 class AlertEvaluator:
@@ -104,9 +105,32 @@ class AlertEvaluator:
             if existing_alert:
                 # Update existing alert
                 existing_alert.current_value = value
+                existing_alert.updated_at = datetime.utcnow()
                 existing_alert.last_triggered_at = datetime.utcnow()
                 existing_alert.severity = severity
                 existing_alert.threshold_value = threshold
+
+                # Check if we should re-send notification (after 10 minutes threshold)
+                result = await self.session.execute(
+                    select(Notification)
+                    .where(Notification.alert_id == existing_alert.id)
+                    .order_by(Notification.sent_at.desc())
+                    .limit(1)
+                )
+                last_notification = result.scalar_one_or_none()
+
+                should_resend = False
+                if last_notification and last_notification.sent_at:
+                    time_since_last = datetime.utcnow() - last_notification.sent_at
+                    if time_since_last > timedelta(minutes=10):
+                        should_resend = True
+                elif not last_notification:
+                    # No notification was ever sent (shouldn't happen, but handle it)
+                    should_resend = True
+
+                if should_resend:
+                    notifier = NotificationService(self.session)
+                    await notifier.send_alert_notification(existing_alert, "reminder")
             else:
                 # Create new alert
                 alert = Alert(
@@ -126,6 +150,11 @@ class AlertEvaluator:
                     server.status = "critical"
                 elif severity == "warning" and server.status != "critical":
                     server.status = "warning"
+
+                # Send notifications for new alert
+                await self.session.flush()  # Ensure alert has an ID
+                notifier = NotificationService(self.session)
+                await notifier.send_alert_notification(alert, "new")
         else:
             # Value is below thresholds - auto-resolve any existing alerts
             result = await self.session.execute(
@@ -142,6 +171,10 @@ class AlertEvaluator:
             if existing_alert:
                 existing_alert.state = "resolved"
                 existing_alert.resolved_at = datetime.utcnow()
+
+                # Send resolved notification
+                notifier = NotificationService(self.session)
+                await notifier.send_alert_notification(existing_alert, "resolved")
 
                 # Check if we should update server status back to online
                 result = await self.session.execute(

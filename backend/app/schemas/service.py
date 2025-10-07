@@ -47,6 +47,7 @@ class HealthCheckBase(BaseModel):
     json_path: Optional[str] = None
     expected_value: Optional[str] = None
     enabled: bool = True
+    alert_on_failure: bool = True
 
 
 class HealthCheckCreate(HealthCheckBase):
@@ -65,6 +66,7 @@ class HealthCheckUpdate(BaseModel):
     json_path: Optional[str] = None
     expected_value: Optional[str] = None
     enabled: Optional[bool] = None
+    alert_on_failure: Optional[bool] = None
 
 
 class HealthCheckRead(HealthCheckBase):

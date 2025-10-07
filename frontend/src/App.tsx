@@ -15,6 +15,7 @@ import { DockerOverview } from './pages/DockerOverview';
 import { AcceptInvitation } from './pages/AcceptInvitation';
 import { Services } from './pages/Services';
 import { ServiceDetail } from './pages/ServiceDetail';
+import { Settings } from './pages/Settings';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -55,6 +56,7 @@ function App() {
             <Route path="alerts" element={<Alerts />} />
             <Route path="system-overview" element={<SystemOverview />} />
             <Route path="docker-overview" element={<DockerOverview />} />
+            <Route path="settings" element={<Settings />} />
           </Route>
 
           {/* Catch all */}

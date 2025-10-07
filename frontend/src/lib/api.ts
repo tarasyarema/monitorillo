@@ -137,9 +137,12 @@ export const metricsApi = {
     return response.data;
   },
 
-  getHistory: async (serverId: number, hours: number = 24) => {
+  getHistory: async (serverId: number, hours: number = 24, granularityMinutes?: number) => {
     const response = await api.get(`/api/v1/metrics/servers/${serverId}/history`, {
-      params: { hours },
+      params: {
+        hours,
+        ...(granularityMinutes && { granularity_minutes: granularityMinutes }),
+      },
     });
     return response.data;
   },
@@ -164,10 +167,30 @@ export const alertsApi = {
     return response.data;
   },
 
-  getConfigs: async (serverId: number) => {
+  get: async (alertId: number) => {
+    const response = await api.get(`/api/v1/alerts/${alertId}`);
+    return response.data;
+  },
+
+  getConfigs: async (serverId?: number) => {
     const response = await api.get(`/api/v1/alerts/configs`);
-    // Filter configs for this specific server
-    return response.data.filter((config: any) => config.server_id === serverId);
+    if (serverId) {
+      return response.data.filter((config: any) => config.server_id === serverId);
+    }
+    return response.data;
+  },
+
+  createConfig: async (data: {
+    team_id: number;
+    metric_type: string;
+    warning_threshold: number;
+    critical_threshold: number;
+    server_id?: number;
+  }) => {
+    const response = await api.post(`/api/v1/alerts/configs`, null, {
+      params: data,
+    });
+    return response.data;
   },
 
   updateConfig: async (
@@ -179,7 +202,7 @@ export const alertsApi = {
       enabled?: boolean;
     }
   ) => {
-    const response = await api.patch(`/api/v1/alert-configs/${configId}`, data);
+    const response = await api.patch(`/api/v1/alerts/alert-configs/${configId}`, data);
     return response.data;
   },
 };
@@ -280,6 +303,7 @@ export const healthChecksApi = {
       json_path?: string;
       expected_value?: string;
       enabled?: boolean;
+      alert_on_failure?: boolean;
     }
   ) => {
     const response = await api.patch(`/api/v1/health-checks/${checkId}`, data);
@@ -298,6 +322,13 @@ export const healthChecksApi = {
   getResults: async (checkId: number, hours?: number) => {
     const response = await api.get(`/api/v1/health-checks/${checkId}/results`, {
       params: hours ? { hours } : {},
+    });
+    return response.data;
+  },
+
+  getLatestResults: async (teamId: number, limit?: number) => {
+    const response = await api.get(`/api/v1/teams/${teamId}/health-checks/latest`, {
+      params: limit ? { limit } : {},
     });
     return response.data;
   },
@@ -372,5 +403,43 @@ export const deploymentsApi = {
   update: async (deploymentId: number, notes: string) => {
     const response = await api.patch(`/api/v1/deployments/${deploymentId}`, { notes });
     return response.data;
+  },
+};
+
+// Notifications API
+export const notificationsApi = {
+  listChannels: async (teamId?: number) => {
+    const response = await api.get('/api/v1/notifications/channels', {
+      params: teamId ? { team_id: teamId } : {},
+    });
+    return response.data;
+  },
+
+  createChannel: async (data: {
+    team_id: number;
+    type: string;
+    name: string;
+    slack_webhook_url?: string;
+    email_addresses?: string;
+  }) => {
+    const response = await api.post('/api/v1/notifications/channels', data);
+    return response.data;
+  },
+
+  updateChannel: async (
+    channelId: number,
+    data: {
+      name?: string;
+      enabled?: boolean;
+      slack_webhook_url?: string;
+      email_addresses?: string;
+    }
+  ) => {
+    const response = await api.patch(`/api/v1/notifications/channels/${channelId}`, data);
+    return response.data;
+  },
+
+  deleteChannel: async (channelId: number) => {
+    await api.delete(`/api/v1/notifications/channels/${channelId}`);
   },
 };

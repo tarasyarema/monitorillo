@@ -292,3 +292,74 @@ async def get_health_check_results(
     )
     results = result.scalars().all()
     return results
+
+
+@router.get("/teams/{team_id}/health-checks/latest")
+async def get_latest_health_check_results(
+    team_id: int,
+    user: Annotated[User, Depends(current_active_user)],
+    session: Annotated[AsyncSession, Depends(get_async_session)],
+    limit: int = 10,
+):
+    """Get latest health check results across all services in a team"""
+
+    # Check team membership
+    from app.core.rbac import get_user_team_role
+    user_role = await get_user_team_role(team_id, user, session)
+
+    if not user_role:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You are not a member of this team"
+        )
+
+    # Get all services for the team
+    result = await session.execute(
+        select(Service).where(Service.team_id == team_id)
+    )
+    services = result.scalars().all()
+
+    if not services:
+        return []
+
+    service_ids = [s.id for s in services]
+
+    # Get all health checks for these services
+    result = await session.execute(
+        select(HealthCheck).where(HealthCheck.service_id.in_(service_ids))
+    )
+    health_checks = result.scalars().all()
+
+    if not health_checks:
+        return []
+
+    # For each health check, get the latest result
+    latest_results = []
+    for health_check in health_checks:
+        result = await session.execute(
+            select(HealthCheckResult)
+            .where(HealthCheckResult.health_check_id == health_check.id)
+            .order_by(desc(HealthCheckResult.checked_at))
+            .limit(1)
+        )
+        latest_result = result.scalar_one_or_none()
+
+        if latest_result:
+            # Get service name
+            service = next((s for s in services if s.id == health_check.service_id), None)
+            latest_results.append({
+                "id": latest_result.id,
+                "health_check_id": health_check.id,
+                "health_check_name": health_check.name,
+                "service_id": service.id if service else None,
+                "service_name": service.name if service else "Unknown",
+                "success": latest_result.success,
+                "status_code": latest_result.status_code,
+                "response_time_ms": latest_result.response_time_ms,
+                "checked_at": latest_result.checked_at,
+                "error_message": latest_result.error_message,
+            })
+
+    # Sort by checked_at descending and limit
+    latest_results.sort(key=lambda x: x["checked_at"], reverse=True)
+    return latest_results[:limit]

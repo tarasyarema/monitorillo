@@ -36,6 +36,9 @@ class Team(Base):
     services: Mapped[List["Service"]] = relationship(
         "Service", back_populates="team", cascade="all, delete-orphan"
     )
+    notification_channels: Mapped[List["NotificationChannel"]] = relationship(
+        "NotificationChannel", back_populates="team", cascade="all, delete-orphan"
+    )
 
 
 class TeamMember(Base):

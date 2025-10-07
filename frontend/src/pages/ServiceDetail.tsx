@@ -149,6 +149,17 @@ export const ServiceDetail: React.FC = () => {
     },
   });
 
+  const toggleHealthCheckAlertMutation = useMutation({
+    mutationFn: ({ checkId, alertOnFailure }: { checkId: number; alertOnFailure: boolean }) =>
+      healthChecksApi.update(checkId, { alert_on_failure: alertOnFailure }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['healthChecks', serviceId] });
+    },
+    onError: (err: any) => {
+      setError(err.response?.data?.detail || 'Failed to update health check alert settings');
+    },
+  });
+
   const executeHealthCheckMutation = useMutation({
     mutationFn: (checkId: number) => healthChecksApi.execute(checkId),
     onSuccess: () => {
@@ -810,6 +821,9 @@ export const ServiceDetail: React.FC = () => {
                       <Badge variant={check.enabled ? 'default' : 'secondary'}>
                         {check.enabled ? 'Enabled' : 'Disabled'}
                       </Badge>
+                      <Badge variant={(check as any).alert_on_failure ? 'destructive' : 'outline'}>
+                        {(check as any).alert_on_failure ? 'Alerts On' : 'Alerts Off'}
+                      </Badge>
                     </div>
                   </div>
                 </CardHeader>
@@ -852,6 +866,19 @@ export const ServiceDetail: React.FC = () => {
                       disabled={toggleHealthCheckMutation.isPending}
                     >
                       {check.enabled ? 'Disable' : 'Enable'}
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() =>
+                        toggleHealthCheckAlertMutation.mutate({
+                          checkId: check.id,
+                          alertOnFailure: !(check as any).alert_on_failure,
+                        })
+                      }
+                      disabled={toggleHealthCheckAlertMutation.isPending}
+                    >
+                      {(check as any).alert_on_failure ? 'Disable Alerts' : 'Enable Alerts'}
                     </Button>
                     <Button
                       size="sm"

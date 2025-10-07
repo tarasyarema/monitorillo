@@ -54,6 +54,7 @@ class HealthCheck(Base):
     json_path: Mapped[str | None] = mapped_column(String(length=255), nullable=True)
     expected_value: Mapped[str | None] = mapped_column(String(length=255), nullable=True)
     enabled: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+    alert_on_failure: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
 
@@ -90,6 +91,7 @@ class VersionCheck(Base):
     timeout_seconds: Mapped[int] = mapped_column(Integer, nullable=False, default=30)
     check_interval_minutes: Mapped[int] = mapped_column(Integer, nullable=False, default=5)
     enabled: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+    alert_on_failure: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
 

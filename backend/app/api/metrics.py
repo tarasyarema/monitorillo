@@ -68,10 +68,7 @@ async def ingest_metrics(
 
     await session.commit()
 
-    # Evaluate alerts
-    evaluator = AlertEvaluator(session)
-    await evaluator.evaluate_server_metrics(server.id)
-
+    # Alert evaluation is now handled by the worker
     return {"status": "ok", "message": "Metrics received"}
 
 
@@ -185,8 +182,9 @@ async def get_metrics_history(
     user: Annotated[User, Depends(current_active_user)],
     session: Annotated[AsyncSession, Depends(get_async_session)],
     hours: int = 24,
+    granularity_minutes: int | None = None,
 ):
-    """Get historical metrics for a server"""
+    """Get historical metrics for a server with optional granularity for downsampling"""
     # Verify access (same as above)
     from app.models.team import TeamMember
 
@@ -242,9 +240,85 @@ async def get_metrics_history(
                 "value": metric.value
             })
 
+    # Apply downsampling if granularity is specified
+    if granularity_minutes:
+        system_metrics = _downsample_metrics(system_metrics, granularity_minutes)
+        docker_metrics = _downsample_metrics(docker_metrics, granularity_minutes)
+
     return {
         "server_id": server_id,
         "period_hours": hours,
         "system": system_metrics,
         "docker": docker_metrics,
     }
+
+
+def _downsample_metrics(metrics: list[dict], granularity_minutes: int) -> list[dict]:
+    """Downsample metrics by averaging values within granularity windows"""
+    if not metrics or granularity_minutes <= 0:
+        return metrics
+
+    from collections import defaultdict
+
+    # Group metrics by time buckets
+    buckets = defaultdict(list)
+    granularity_seconds = granularity_minutes * 60
+
+    for metric in metrics:
+        timestamp = metric["timestamp"]
+        # Round timestamp to granularity bucket
+        bucket_timestamp = timestamp.replace(second=0, microsecond=0)
+        bucket_key = int(bucket_timestamp.timestamp() / granularity_seconds) * granularity_seconds
+        buckets[bucket_key].append(metric)
+
+    # Average values in each bucket
+    downsampled = []
+    for bucket_key, bucket_metrics in sorted(buckets.items()):
+        if not bucket_metrics:
+            continue
+
+        # Average the metric values
+        avg_value = _average_metric_values([m["value"] for m in bucket_metrics])
+
+        downsampled.append({
+            "timestamp": datetime.fromtimestamp(bucket_key),
+            "value": avg_value
+        })
+
+    return downsampled
+
+
+def _average_metric_values(values: list[dict]) -> dict:
+    """Average metric values (handles nested structures)"""
+    if not values:
+        return {}
+
+    # For system metrics
+    if "cpu" in values[0]:
+        cpu_usages = [v.get("cpu", {}).get("usage_percent", 0) for v in values if v.get("cpu")]
+        cpu_loads = [v.get("cpu", {}).get("load_avg_1", 0) for v in values if v.get("cpu")]
+
+        memory_used = [v.get("memory", {}).get("used_percent", 0) for v in values if v.get("memory")]
+
+        result = {
+            "cpu": {
+                "usage_percent": sum(cpu_usages) / len(cpu_usages) if cpu_usages else 0,
+                "load_avg_1": sum(cpu_loads) / len(cpu_loads) if cpu_loads else 0,
+            },
+            "memory": {
+                "used_percent": sum(memory_used) / len(memory_used) if memory_used else 0,
+            },
+        }
+
+        # Handle disk partitions (just use the first value's structure for simplicity)
+        if values[0].get("disk", {}).get("partitions"):
+            result["disk"] = values[0]["disk"]
+
+        # Handle network (just use the latest value)
+        if values[-1].get("network"):
+            result["network"] = values[-1]["network"]
+
+        return result
+
+    # For docker metrics, return the latest value (averaging container metrics is complex)
+    return values[-1] if values else {}

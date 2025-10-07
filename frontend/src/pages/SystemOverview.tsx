@@ -8,7 +8,7 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Responsi
 
 export const SystemOverview: React.FC = () => {
   const { currentTeam } = useAppStore();
-  const [timeRange, setTimeRange] = useState(24);
+  const [timeRange, setTimeRange] = useState(1);
   const [selectedMetric, setSelectedMetric] = useState<'cpu' | 'memory' | 'disk'>('cpu');
   const [hiddenSeries, setHiddenSeries] = useState<Set<string>>(new Set());
 
@@ -18,13 +18,21 @@ export const SystemOverview: React.FC = () => {
     enabled: !!currentTeam,
   });
 
+  const getGranularity = (hours: number): number | undefined => {
+    if (hours === 1) return undefined; // Minimum granularity
+    if (hours === 6) return 10; // 10 minutes
+    if (hours === 24) return 30; // 30 minutes
+    return undefined;
+  };
+
   const serversMetrics = useQuery({
     queryKey: ['all-servers-metrics', servers?.map((s: any) => s.id), timeRange],
     queryFn: async () => {
       if (!servers || servers.length === 0) return [];
 
+      const granularity = getGranularity(timeRange);
       const metricsPromises = servers.map((server: any) =>
-        metricsApi.getHistory(server.id, timeRange).then((data) => ({
+        metricsApi.getHistory(server.id, timeRange, granularity).then((data) => ({
           serverId: server.id,
           serverName: server.name,
           metrics: data,

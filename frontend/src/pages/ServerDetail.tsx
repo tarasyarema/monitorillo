@@ -14,7 +14,7 @@ export const ServerDetail: React.FC = () => {
   const queryClient = useQueryClient();
   const [showApiKey, setShowApiKey] = useState(false);
   const [showApiSection, setShowApiSection] = useState(false);
-  const [timeRange, setTimeRange] = useState(24);
+  const [timeRange, setTimeRange] = useState(1);
   const [hiddenSeries, setHiddenSeries] = useState<Set<string>>(new Set());
 
   const { data: server } = useQuery({
@@ -28,15 +28,50 @@ export const ServerDetail: React.FC = () => {
     refetchInterval: 30000, // Refresh every 30 seconds
   });
 
+  const getGranularity = (hours: number): number | undefined => {
+    if (hours === 1) return undefined; // Minimum granularity
+    if (hours === 6) return 10; // 10 minutes
+    if (hours === 24) return 30; // 30 minutes
+    return undefined;
+  };
+
   const { data: metricsHistory } = useQuery({
     queryKey: ['metrics', serverId, 'history', timeRange],
-    queryFn: () => metricsApi.getHistory(Number(serverId), timeRange),
+    queryFn: () => {
+      const granularity = getGranularity(timeRange);
+      return metricsApi.getHistory(Number(serverId), timeRange, granularity);
+    },
     refetchInterval: 60000, // Refresh every minute
   });
 
   const { data: alertConfigs } = useQuery({
     queryKey: ['alert-configs', serverId],
     queryFn: () => alertsApi.getConfigs(Number(serverId)),
+  });
+
+  const updateConfigMutation = useMutation({
+    mutationFn: (data: {
+      configId: number;
+      warning_threshold?: number;
+      critical_threshold?: number;
+      enabled?: boolean;
+    }) => alertsApi.updateConfig(data.configId, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['alert-configs'] });
+    },
+  });
+
+  const createConfigMutation = useMutation({
+    mutationFn: (data: {
+      team_id: number;
+      metric_type: string;
+      warning_threshold: number;
+      critical_threshold: number;
+      server_id?: number;
+    }) => alertsApi.createConfig(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['alert-configs'] });
+    },
   });
 
   const regenerateApiKeyMutation = useMutation({
@@ -346,31 +381,74 @@ export const ServerDetail: React.FC = () => {
       )}
 
       {/* Alert Configurations */}
-      {alertConfigs && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Alert Thresholds</CardTitle>
-            <CardDescription>Current alert configuration for this server</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              {alertConfigs.map((config: any) => (
-                <div key={config.id} className="flex justify-between items-center border rounded p-3">
-                  <div>
-                    <h4 className="font-medium capitalize">{config.metric_type}</h4>
-                    <p className="text-sm text-gray-600">
-                      Warning: {config.warning_threshold}% | Critical: {config.critical_threshold}%
-                    </p>
+      <Card>
+        <CardHeader>
+          <CardTitle>Alert Thresholds</CardTitle>
+          <CardDescription>Configure alert thresholds for this server</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-3">
+            {['cpu', 'memory', 'disk'].map((metricType) => {
+              const config = alertConfigs?.find((c: any) => c.metric_type === metricType);
+
+              return (
+                <div key={metricType} className="flex justify-between items-center border rounded p-3">
+                  <div className="flex-1">
+                    <h4 className="font-medium capitalize">{metricType}</h4>
+                    {config ? (
+                      <p className="text-sm text-gray-600">
+                        Warning: {config.warning_threshold}% | Critical: {config.critical_threshold}%
+                      </p>
+                    ) : (
+                      <p className="text-sm text-gray-600">Not configured</p>
+                    )}
                   </div>
-                  <Badge variant={config.enabled ? 'success' : 'secondary'}>
-                    {config.enabled ? 'Enabled' : 'Disabled'}
-                  </Badge>
+                  <div className="flex gap-2 items-center">
+                    {config ? (
+                      <>
+                        <Badge variant={config.enabled ? 'success' : 'secondary'}>
+                          {config.enabled ? 'Enabled' : 'Disabled'}
+                        </Badge>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() =>
+                            updateConfigMutation.mutate({
+                              configId: config.id,
+                              enabled: !config.enabled,
+                            })
+                          }
+                        >
+                          {config.enabled ? 'Disable' : 'Enable'}
+                        </Button>
+                      </>
+                    ) : (
+                      server && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() =>
+                            createConfigMutation.mutate({
+                              team_id: server.team_id,
+                              server_id: server.id,
+                              metric_type: metricType,
+                              warning_threshold: 80,
+                              critical_threshold: 90,
+                            })
+                          }
+                          disabled={createConfigMutation.isPending}
+                        >
+                          Configure
+                        </Button>
+                      )
+                    )}
+                  </div>
                 </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      )}
+              );
+            })}
+          </div>
+        </CardContent>
+      </Card>
 
       {!systemMetrics && (
         <Card>

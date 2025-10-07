@@ -1,16 +1,19 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
-import { serversApi, alertsApi, servicesApi } from '../lib/api';
+import { serversApi, alertsApi, servicesApi, metricsApi, healthChecksApi } from '../lib/api';
 import { useAppStore } from '../lib/store';
 import { Server, Alert, Service } from '../types';
 import { Button } from '../components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
 import { Badge } from '../components/ui/badge';
 import { safeFormatDistanceToNow } from '../lib/utils';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
 export const Dashboard: React.FC = () => {
   const { currentTeam } = useAppStore();
+  const [systemChartTimeRange, setSystemChartTimeRange] = useState(1);
+  const [selectedMetric, setSelectedMetric] = useState<'cpu' | 'memory' | 'disk'>('cpu');
 
   const { data: servers } = useQuery({
     queryKey: ['servers', currentTeam?.id],
@@ -29,6 +32,83 @@ export const Dashboard: React.FC = () => {
     queryFn: () => alertsApi.list(),
     refetchInterval: 30000,
   });
+
+  const { data: latestHealthChecks } = useQuery({
+    queryKey: ['latest-health-checks', currentTeam?.id],
+    queryFn: () => (currentTeam ? healthChecksApi.getLatestResults(currentTeam.id, 10) : Promise.resolve([])),
+    enabled: !!currentTeam,
+    refetchInterval: 30000,
+  });
+
+  const getGranularity = (hours: number): number | undefined => {
+    if (hours === 1) return undefined;
+    if (hours === 6) return 10;
+    if (hours === 24) return 30;
+    return undefined;
+  };
+
+  const serversMetrics = useQuery({
+    queryKey: ['dashboard-servers-metrics', servers?.map((s: any) => s.id), systemChartTimeRange],
+    queryFn: async () => {
+      if (!servers || servers.length === 0) return [];
+
+      const granularity = getGranularity(systemChartTimeRange);
+      const metricsPromises = servers.map((server: any) =>
+        metricsApi.getHistory(server.id, systemChartTimeRange, granularity).then((data) => ({
+          serverId: server.id,
+          serverName: server.name,
+          metrics: data,
+        }))
+      );
+
+      return Promise.all(metricsPromises);
+    },
+    enabled: !!servers && servers.length > 0,
+    refetchInterval: 60000,
+  });
+
+  const prepareChartData = () => {
+    if (!serversMetrics.data) return [];
+
+    const timestampMap = new Map<number, any>();
+
+    serversMetrics.data.forEach((serverData: any) => {
+      if (!serverData.metrics?.system) return;
+
+      serverData.metrics.system.forEach((metric: any) => {
+        const date = new Date(metric.timestamp);
+        if (isNaN(date.getTime())) return;
+
+        const roundedTime = Math.floor(date.getTime() / 60000) * 60000;
+
+        if (!timestampMap.has(roundedTime)) {
+          timestampMap.set(roundedTime, {
+            timestamp: new Date(roundedTime).toLocaleTimeString(),
+            _time: roundedTime,
+          });
+        }
+
+        const point = timestampMap.get(roundedTime);
+        const partitions = Object.values(metric.value.disk?.partitions || {}) as any[];
+
+        point[`${serverData.serverName}_cpu`] = metric.value.cpu?.usage_percent || 0;
+        point[`${serverData.serverName}_memory`] = metric.value.memory?.used_percent || 0;
+        point[`${serverData.serverName}_disk`] = partitions[0]?.used_percent || 0;
+      });
+    });
+
+    return Array.from(timestampMap.values()).sort((a, b) => a._time - b._time);
+  };
+
+  const chartData = prepareChartData();
+  const colors = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#14b8a6', '#f97316'];
+
+  const tooltipFormatter = (value: any) => {
+    if (typeof value === 'number') {
+      return value.toFixed(2) + '%';
+    }
+    return value;
+  };
 
   if (!currentTeam) {
     return (
@@ -232,6 +312,89 @@ export const Dashboard: React.FC = () => {
         </CardContent>
       </Card>
 
+      {/* System Metrics Chart */}
+      {servers && servers.length > 0 && (
+        <Card>
+          <CardHeader>
+            <div className="flex justify-between items-center">
+              <CardTitle>System Metrics - {selectedMetric.toUpperCase()}</CardTitle>
+              <div className="flex gap-2">
+                <Button
+                  variant={selectedMetric === 'cpu' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setSelectedMetric('cpu')}
+                >
+                  CPU
+                </Button>
+                <Button
+                  variant={selectedMetric === 'memory' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setSelectedMetric('memory')}
+                >
+                  Memory
+                </Button>
+                <Button
+                  variant={selectedMetric === 'disk' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setSelectedMetric('disk')}
+                >
+                  Disk
+                </Button>
+                <div className="border-l pl-2 ml-2 flex gap-2">
+                  <Button
+                    variant={systemChartTimeRange === 1 ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => setSystemChartTimeRange(1)}
+                  >
+                    1h
+                  </Button>
+                  <Button
+                    variant={systemChartTimeRange === 6 ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => setSystemChartTimeRange(6)}
+                  >
+                    6h
+                  </Button>
+                  <Button
+                    variant={systemChartTimeRange === 24 ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => setSystemChartTimeRange(24)}
+                  >
+                    24h
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent>
+            {chartData.length > 0 ? (
+              <ResponsiveContainer width="100%" height={300}>
+                <LineChart data={chartData}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="timestamp" />
+                  <YAxis domain={[0, 100]} />
+                  <Tooltip formatter={tooltipFormatter} />
+                  <Legend />
+                  {servers?.map((server: any, index: number) => (
+                    <Line
+                      key={server.id}
+                      type="monotone"
+                      dataKey={`${server.name}_${selectedMetric}`}
+                      stroke={colors[index % colors.length]}
+                      name={server.name}
+                      dot={false}
+                      strokeWidth={2}
+                    />
+                  ))}
+                </LineChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="text-center py-12 text-gray-500">No metrics data available</div>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
       {/* Services Status */}
       <Card>
         <CardHeader>
@@ -293,6 +456,54 @@ export const Dashboard: React.FC = () => {
           )}
         </CardContent>
       </Card>
+
+      {/* Latest Health Checks */}
+      {latestHealthChecks && latestHealthChecks.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Latest Health Checks</CardTitle>
+            <CardDescription>Most recent health check results</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b">
+                    <th className="text-left py-2 px-3 text-sm font-medium text-gray-600">Service</th>
+                    <th className="text-left py-2 px-3 text-sm font-medium text-gray-600">Health Check</th>
+                    <th className="text-left py-2 px-3 text-sm font-medium text-gray-600">Status</th>
+                    <th className="text-left py-2 px-3 text-sm font-medium text-gray-600">Latency</th>
+                    <th className="text-left py-2 px-3 text-sm font-medium text-gray-600">Checked</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {latestHealthChecks.map((result: any) => (
+                    <tr key={result.id} className="border-b hover:bg-gray-50">
+                      <td className="py-2 px-3">
+                        <Link to={`/services/${result.service_id}`} className="text-sm font-medium hover:text-primary">
+                          {result.service_name}
+                        </Link>
+                      </td>
+                      <td className="py-2 px-3 text-sm">{result.health_check_name}</td>
+                      <td className="py-2 px-3">
+                        <Badge variant={result.success ? 'success' : 'destructive'}>
+                          {result.success ? 'Healthy' : 'Failed'}
+                        </Badge>
+                      </td>
+                      <td className="py-2 px-3 text-sm">
+                        {result.response_time_ms ? `${result.response_time_ms}ms` : 'N/A'}
+                      </td>
+                      <td className="py-2 px-3 text-sm text-gray-500">
+                        {safeFormatDistanceToNow(result.checked_at, { addSuffix: true }) || 'recently'}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 };

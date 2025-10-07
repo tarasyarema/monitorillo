@@ -4,6 +4,7 @@ from app.models.server import Server, Metric
 from app.models.alert import Alert, AlertConfig, Notification
 from app.models.invitation import Invitation
 from app.models.service import Service, HealthCheck, HealthCheckResult, VersionCheck, VersionCheckResult, Deployment
+from app.models.notification import NotificationChannel
 
 __all__ = [
     "User",
@@ -21,4 +22,5 @@ __all__ = [
     "VersionCheck",
     "VersionCheckResult",
     "Deployment",
+    "NotificationChannel",
 ]

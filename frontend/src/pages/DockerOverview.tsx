@@ -5,14 +5,14 @@ import { serversApi, metricsApi } from '../lib/api';
 import { useAppStore } from '../lib/store';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
-import { Badge } from '../components/ui/badge';
+import { MultiSelect } from '../components/ui/multi-select';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
 export const DockerOverview: React.FC = () => {
   const { currentTeam } = useAppStore();
   const [searchParams] = useSearchParams();
   const containerFromUrl = searchParams.get('container');
-  const [timeRange, setTimeRange] = useState(24);
+  const [timeRange, setTimeRange] = useState(1);
   const [selectedContainers, setSelectedContainers] = useState<Set<string>>(
     containerFromUrl ? new Set([containerFromUrl]) : new Set()
   );
@@ -25,13 +25,21 @@ export const DockerOverview: React.FC = () => {
     enabled: !!currentTeam,
   });
 
+  const getGranularity = (hours: number): number | undefined => {
+    if (hours === 1) return undefined; // Minimum granularity
+    if (hours === 6) return 10; // 10 minutes
+    if (hours === 24) return 30; // 30 minutes
+    return undefined;
+  };
+
   const serversMetrics = useQuery({
     queryKey: ['all-docker-metrics', servers?.map((s: any) => s.id), timeRange],
     queryFn: async () => {
       if (!servers || servers.length === 0) return [];
 
+      const granularity = getGranularity(timeRange);
       const metricsPromises = servers.map((server: any) =>
-        metricsApi.getHistory(server.id, timeRange).then((data) => ({
+        metricsApi.getHistory(server.id, timeRange, granularity).then((data) => ({
           serverId: server.id,
           serverName: server.name,
           metrics: data,
@@ -136,24 +144,6 @@ export const DockerOverview: React.FC = () => {
     return value;
   };
 
-  const toggleContainer = (key: string) => {
-    const newSelected = new Set(selectedContainers);
-    if (newSelected.has(key)) {
-      newSelected.delete(key);
-    } else {
-      newSelected.add(key);
-    }
-    setSelectedContainers(newSelected);
-  };
-
-  const toggleAll = () => {
-    if (selectedContainers.size === allContainers.size) {
-      setSelectedContainers(new Set());
-    } else {
-      setSelectedContainers(new Set(allContainers.keys()));
-    }
-  };
-
   if (!currentTeam) {
     return <div className="text-center py-12">Please select a team first</div>;
   }
@@ -183,27 +173,19 @@ export const DockerOverview: React.FC = () => {
       {/* Container Selection */}
       <Card>
         <CardHeader>
-          <div className="flex justify-between items-center">
-            <CardTitle>Select Containers</CardTitle>
-            <Button variant="outline" size="sm" onClick={toggleAll}>
-              {selectedContainers.size === allContainers.size ? 'Deselect All' : 'Select All'}
-            </Button>
-          </div>
+          <CardTitle>Select Containers</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="flex flex-wrap gap-2">
-            {Array.from(allContainers.entries()).map(([key, container]) => (
-              <Badge
-                key={key}
-                variant={selectedContainers.has(key) || selectedContainers.size === 0 ? 'default' : 'outline'}
-                className="cursor-pointer"
-                onClick={() => toggleContainer(key)}
-              >
-                {container.server} / {container.name}
-              </Badge>
-            ))}
-            {allContainers.size === 0 && <p className="text-sm text-gray-500">No containers found</p>}
-          </div>
+          {allContainers.size > 0 ? (
+            <MultiSelect
+              options={allContainers}
+              selectedKeys={selectedContainers}
+              onSelectionChange={setSelectedContainers}
+              placeholder="Select containers to display"
+            />
+          ) : (
+            <p className="text-sm text-gray-500">No containers found</p>
+          )}
         </CardContent>
       </Card>
 
