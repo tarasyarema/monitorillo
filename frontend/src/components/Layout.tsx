@@ -74,6 +74,16 @@ export const Layout: React.FC = () => {
                   Servers
                 </Link>
                 <Link
+                  to="/services"
+                  className={`inline-flex items-center px-1 pt-1 text-sm font-medium border-b-2 ${
+                    location.pathname.startsWith('/services')
+                      ? 'text-gray-900 border-primary'
+                      : 'text-gray-500 hover:text-gray-900 hover:border-gray-300 border-transparent'
+                  }`}
+                >
+                  Services
+                </Link>
+                <Link
                   to="/alerts"
                   className={`inline-flex items-center px-1 pt-1 text-sm font-medium border-b-2 ${
                     location.pathname === '/alerts'
@@ -166,6 +176,16 @@ export const Layout: React.FC = () => {
                 }`}
               >
                 Servers
+              </Link>
+              <Link
+                to="/services"
+                className={`block pl-3 pr-4 py-2 border-l-4 text-base font-medium ${
+                  location.pathname.startsWith('/services')
+                    ? 'border-primary text-primary bg-primary/5'
+                    : 'border-transparent text-gray-600 hover:bg-gray-50 hover:border-gray-300 hover:text-gray-800'
+                }`}
+              >
+                Services
               </Link>
               <Link
                 to="/alerts"

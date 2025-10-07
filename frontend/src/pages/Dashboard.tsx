@@ -1,9 +1,9 @@
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
-import { serversApi, alertsApi } from '../lib/api';
+import { serversApi, alertsApi, servicesApi } from '../lib/api';
 import { useAppStore } from '../lib/store';
-import { Server, Alert } from '../types';
+import { Server, Alert, Service } from '../types';
 import { Button } from '../components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
 import { Badge } from '../components/ui/badge';
@@ -15,6 +15,12 @@ export const Dashboard: React.FC = () => {
   const { data: servers } = useQuery({
     queryKey: ['servers', currentTeam?.id],
     queryFn: () => (currentTeam ? serversApi.list(currentTeam.id) : Promise.resolve([])),
+    enabled: !!currentTeam,
+  });
+
+  const { data: services } = useQuery({
+    queryKey: ['services', currentTeam?.id],
+    queryFn: () => (currentTeam ? servicesApi.list(currentTeam.id) : Promise.resolve([])),
     enabled: !!currentTeam,
   });
 
@@ -43,6 +49,11 @@ export const Dashboard: React.FC = () => {
   const newAlerts = alerts?.filter((a: Alert) => a.state === 'new') || [];
   const activeAlerts = alerts?.filter((a: Alert) => a.state === 'new' || a.state === 'acknowledged') || [];
 
+  const healthyServices = services?.filter((s: Service) => s.status === 'healthy') || [];
+  const degradedServices = services?.filter((s: Service) => s.status === 'degraded') || [];
+  const unhealthyServices = services?.filter((s: Service) => s.status === 'unhealthy') || [];
+  const unknownServices = services?.filter((s: Service) => s.status === 'unknown') || [];
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -56,7 +67,7 @@ export const Dashboard: React.FC = () => {
       </div>
 
       {/* Stats Overview */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
         <Card>
           <CardHeader>
             <CardTitle className="text-sm font-medium text-gray-600">Total Servers</CardTitle>
@@ -65,6 +76,18 @@ export const Dashboard: React.FC = () => {
             <div className="text-3xl font-bold">{servers?.length || 0}</div>
             <p className="text-xs text-gray-500 mt-1">
               {onlineServers.length} online, {offlineServers.length} offline
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-sm font-medium text-gray-600">Total Services</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-3xl font-bold">{services?.length || 0}</div>
+            <p className="text-xs text-gray-500 mt-1">
+              {healthyServices.length} healthy, {unhealthyServices.length} unhealthy
             </p>
           </CardContent>
         </Card>
@@ -89,13 +112,13 @@ export const Dashboard: React.FC = () => {
           </CardContent>
         </Card>
 
-        <Card className={warningServers.length > 0 ? 'border-yellow-500' : ''}>
+        <Card className={degradedServices.length > 0 || unhealthyServices.length > 0 ? 'border-yellow-500' : ''}>
           <CardHeader>
-            <CardTitle className="text-sm font-medium text-gray-600">Warning Servers</CardTitle>
+            <CardTitle className="text-sm font-medium text-gray-600">Degraded Services</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold text-yellow-600">{warningServers.length}</div>
-            <p className="text-xs text-gray-500 mt-1">Need monitoring</p>
+            <div className="text-3xl font-bold text-yellow-600">{degradedServices.length + unhealthyServices.length}</div>
+            <p className="text-xs text-gray-500 mt-1">Need attention</p>
           </CardContent>
         </Card>
       </div>
@@ -203,6 +226,70 @@ export const Dashboard: React.FC = () => {
               <p className="text-gray-600 mb-4">No servers registered yet</p>
               <Link to="/servers">
                 <Button>Add Your First Server</Button>
+              </Link>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Services Status */}
+      <Card>
+        <CardHeader>
+          <div className="flex justify-between items-center">
+            <div>
+              <CardTitle>Services</CardTitle>
+              <CardDescription>
+                {services?.length || 0} service{services?.length !== 1 ? 's' : ''} monitored
+              </CardDescription>
+            </div>
+            <Link to="/services">
+              <Button variant="outline" size="sm">
+                Manage Services
+              </Button>
+            </Link>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {services && services.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+              {services.map((service: Service) => (
+                <Link key={service.id} to={`/services/${service.id}`}>
+                  <div className="border rounded-lg p-4 hover:shadow-md transition-all">
+                    <div className="flex justify-between items-start mb-2">
+                      <div className="flex-1">
+                        <h4 className="font-medium">{service.name}</h4>
+                        {service.description && (
+                          <p className="text-xs text-gray-600 truncate">{service.description}</p>
+                        )}
+                      </div>
+                      <Badge
+                        variant={
+                          service.status === 'healthy'
+                            ? 'success'
+                            : service.status === 'unhealthy'
+                              ? 'destructive'
+                              : service.status === 'degraded'
+                                ? 'warning'
+                                : 'secondary'
+                        }
+                      >
+                        {service.status}
+                      </Badge>
+                    </div>
+                    {service.current_version && (
+                      <div className="text-xs text-gray-500">
+                        <span className="font-mono">{service.current_version}</span>
+                      </div>
+                    )}
+                  </div>
+                </Link>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-8">
+              <p className="text-gray-600 mb-4">No services monitored yet</p>
+              <Link to="/services">
+                <Button>Add Your First Service</Button>
               </Link>
             </div>
           )}

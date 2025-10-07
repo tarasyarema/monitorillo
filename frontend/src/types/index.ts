@@ -121,3 +121,89 @@ export interface AlertConfig {
   enabled: boolean;
   created_at: string;
 }
+
+export interface Invitation {
+  id: number;
+  team_id: number;
+  email: string;
+  role: 'owner' | 'admin' | 'member' | 'viewer';
+  token: string;
+  status: 'pending' | 'accepted' | 'revoked';
+  invited_by: number;
+  created_at: string;
+  expires_at: string;
+  accepted_at: string | null;
+}
+
+export interface Service {
+  id: number;
+  team_id: number;
+  name: string;
+  description: string | null;
+  status: 'healthy' | 'degraded' | 'unhealthy' | 'unknown';
+  version_url: string | null;
+  version_json_path: string | null;
+  current_version: string | null;
+  last_version_check: string | null;
+  created_at: string;
+  health_checks?: HealthCheck[];
+}
+
+export interface HealthCheck {
+  id: number;
+  service_id: number;
+  name: string;
+  url: string;
+  method: string;
+  headers: Record<string, string> | null;
+  body: string | null;
+  expected_status_code: number;
+  timeout_seconds: number;
+  check_interval_minutes: number;
+  json_path: string | null;
+  expected_value: string | null;
+  enabled: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface HealthCheckResult {
+  id: number;
+  health_check_id: number;
+  success: boolean;
+  status_code: number | null;
+  response_time_ms: number | null;
+  error_message: string | null;
+  checked_at: string;
+}
+
+export interface VersionCheck {
+  id: number;
+  service_id: number;
+  name: string;
+  url: string;
+  json_path: string;
+  timeout_seconds: number;
+  check_interval_minutes: number;
+  enabled: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface VersionCheckResult {
+  id: number;
+  version_check_id: number;
+  version: string | null;
+  success: boolean;
+  response_time_ms: number | null;
+  error_message: string | null;
+  checked_at: string;
+}
+
+export interface Deployment {
+  id: number;
+  service_id: number;
+  version: string;
+  detected_at: string;
+  notes: string | null;
+}

@@ -9,12 +9,14 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../co
 import { Alert, AlertDescription } from '../components/ui/alert';
 import { Badge } from '../components/ui/badge';
 import { safeToLocaleDateString } from '../lib/utils';
+import { TeamInvitations } from '../components/TeamInvitations';
 
 export const Teams: React.FC = () => {
   const queryClient = useQueryClient();
   const { currentTeam, setCurrentTeam } = useAppStore();
   const [newTeamName, setNewTeamName] = useState('');
   const [error, setError] = useState('');
+  const [showInvitations, setShowInvitations] = useState(false);
 
   const { data: teams, isLoading } = useQuery({
     queryKey: ['teams'],
@@ -55,11 +57,27 @@ export const Teams: React.FC = () => {
     );
   }
 
+  // Check if user can manage invitations (owner or admin)
+  const currentTeamMember = teams?.find((t: Team) => t.id === currentTeam?.id)?.members?.find(
+    (m) => m.user_id === teams[0]?.members?.[0]?.user_id
+  );
+  const canManageInvitations = currentTeamMember?.role === 'owner' || currentTeamMember?.role === 'admin';
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h1 className="text-3xl font-bold">Teams</h1>
+        {currentTeam && (
+          <Button onClick={() => setShowInvitations(!showInvitations)}>
+            {showInvitations ? 'Hide Invitations' : 'Manage Invitations'}
+          </Button>
+        )}
       </div>
+
+      {/* Team Invitations */}
+      {showInvitations && currentTeam && (
+        <TeamInvitations teamId={currentTeam.id} canManageInvitations={canManageInvitations} />
+      )}
 
       {/* Create Team */}
       <Card>

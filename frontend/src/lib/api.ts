@@ -183,3 +183,176 @@ export const alertsApi = {
     return response.data;
   },
 };
+
+// Invitations API
+export const invitationsApi = {
+  list: async (teamId: number) => {
+    const response = await api.get(`/api/v1/teams/${teamId}/invitations`);
+    return response.data;
+  },
+
+  create: async (teamId: number, email: string, role: string) => {
+    const response = await api.post(`/api/v1/teams/${teamId}/invitations`, { email, role });
+    return response.data;
+  },
+
+  revoke: async (invitationId: number) => {
+    await api.delete(`/api/v1/invitations/${invitationId}`);
+  },
+
+  accept: async (token: string) => {
+    const response = await api.post('/api/v1/invitations/accept', { token });
+    return response.data;
+  },
+};
+
+// Services API
+export const servicesApi = {
+  list: async (teamId: number) => {
+    const response = await api.get(`/api/v1/teams/${teamId}/services`);
+    return response.data;
+  },
+
+  create: async (teamId: number, data: { name: string; description?: string; version_url?: string; version_json_path?: string }) => {
+    const response = await api.post(`/api/v1/teams/${teamId}/services`, data);
+    return response.data;
+  },
+
+  get: async (serviceId: number) => {
+    const response = await api.get(`/api/v1/services/${serviceId}`);
+    return response.data;
+  },
+
+  update: async (serviceId: number, data: { name?: string; description?: string; version_url?: string; version_json_path?: string }) => {
+    const response = await api.patch(`/api/v1/services/${serviceId}`, data);
+    return response.data;
+  },
+
+  delete: async (serviceId: number) => {
+    await api.delete(`/api/v1/services/${serviceId}`);
+  },
+};
+
+// Health Checks API
+export const healthChecksApi = {
+  list: async (serviceId: number) => {
+    const response = await api.get(`/api/v1/services/${serviceId}/health-checks`);
+    return response.data;
+  },
+
+  create: async (serviceId: number, data: {
+    name: string;
+    url: string;
+    method?: string;
+    headers?: Record<string, string>;
+    body?: string;
+    expected_status_code?: number;
+    timeout_seconds?: number;
+    check_interval_minutes?: number;
+    json_path?: string;
+    expected_value?: string;
+    enabled?: boolean;
+  }) => {
+    const response = await api.post(`/api/v1/services/${serviceId}/health-checks`, data);
+    return response.data;
+  },
+
+  update: async (checkId: number, data: {
+    name?: string;
+    url?: string;
+    method?: string;
+    headers?: Record<string, string>;
+    body?: string;
+    expected_status_code?: number;
+    timeout_seconds?: number;
+    check_interval_minutes?: number;
+    json_path?: string;
+    expected_value?: string;
+    enabled?: boolean;
+  }) => {
+    const response = await api.patch(`/api/v1/health-checks/${checkId}`, data);
+    return response.data;
+  },
+
+  delete: async (checkId: number) => {
+    await api.delete(`/api/v1/health-checks/${checkId}`);
+  },
+
+  execute: async (checkId: number) => {
+    const response = await api.post(`/api/v1/health-checks/${checkId}/execute`);
+    return response.data;
+  },
+
+  getResults: async (checkId: number, hours?: number) => {
+    const response = await api.get(`/api/v1/health-checks/${checkId}/results`, {
+      params: hours ? { hours } : {},
+    });
+    return response.data;
+  },
+};
+
+// Version Checks API
+export const versionChecksApi = {
+  list: async (serviceId: number) => {
+    const response = await api.get(`/api/v1/services/${serviceId}/version-checks`);
+    return response.data;
+  },
+
+  create: async (serviceId: number, data: {
+    name: string;
+    url: string;
+    json_path: string;
+    timeout_seconds?: number;
+    check_interval_minutes?: number;
+    enabled?: boolean;
+  }) => {
+    const response = await api.post(`/api/v1/services/${serviceId}/version-checks`, data);
+    return response.data;
+  },
+
+  update: async (checkId: number, data: {
+    name?: string;
+    url?: string;
+    json_path?: string;
+    timeout_seconds?: number;
+    check_interval_minutes?: number;
+    enabled?: boolean;
+  }) => {
+    const response = await api.patch(`/api/v1/version-checks/${checkId}`, data);
+    return response.data;
+  },
+
+  delete: async (checkId: number) => {
+    await api.delete(`/api/v1/version-checks/${checkId}`);
+  },
+
+  execute: async (checkId: number) => {
+    const response = await api.post(`/api/v1/version-checks/${checkId}/execute`);
+    return response.data;
+  },
+
+  getResults: async (checkId: number, hours?: number) => {
+    const response = await api.get(`/api/v1/version-checks/${checkId}/results`, {
+      params: hours ? { hours } : {},
+    });
+    return response.data;
+  },
+};
+
+// Deployments API
+export const deploymentsApi = {
+  list: async (serviceId: number, limit?: number, offset?: number) => {
+    const response = await api.get(`/api/v1/services/${serviceId}/deployments`, {
+      params: {
+        ...(limit && { limit }),
+        ...(offset && { offset }),
+      },
+    });
+    return response.data;
+  },
+
+  update: async (deploymentId: number, notes: string) => {
+    const response = await api.patch(`/api/v1/deployments/${deploymentId}`, { notes });
+    return response.data;
+  },
+};

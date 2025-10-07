@@ -1,4 +1,4 @@
-.PHONY: help install dev-install sync freeze run migrate migrate-prod run-prod check format typecheck test clean docker-build
+.PHONY: help install dev-install sync freeze run worker migrate migrate-prod run-prod check format typecheck test clean docker-build
 
 help:
 	@echo "Available commands:"
@@ -7,6 +7,7 @@ help:
 	@echo "  make sync             - Sync dependencies with lockfile"
 	@echo "  make freeze           - Freeze dependencies to requirements.txt"
 	@echo "  make run              - Run the application in dev mode"
+	@echo "  make worker           - Run the background worker for health/version checks"
 	@echo "  make migrate          - Run database migrations"
 	@echo "  make migrate-prod     - Run database migrations (production)"
 	@echo "  make run-prod         - Run API in production with gunicorn"
@@ -31,6 +32,9 @@ freeze:
 
 run:
 	uv run uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+
+worker:
+	PYTHONUNBUFFERED=1 uv run python app/worker.py
 
 migrate:
 	uv run alembic upgrade head

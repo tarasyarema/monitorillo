@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api import teams, servers, metrics, alerts
+from app.api import teams, servers, metrics, alerts, invitations, services, health_checks, version_checks, deployments
 from app.core.config import settings
 from app.core.users import auth_backend, fastapi_users
 from app.schemas.user import UserCreate, UserRead, UserUpdate
@@ -57,6 +57,31 @@ app.include_router(teams.router, prefix=settings.API_V1_PREFIX)
 app.include_router(servers.router, prefix=settings.API_V1_PREFIX)
 app.include_router(metrics.router, prefix=settings.API_V1_PREFIX)
 app.include_router(alerts.router, prefix=settings.API_V1_PREFIX)
+app.include_router(
+    invitations.router,
+    prefix="/api/v1",
+    tags=["invitations"],
+)
+app.include_router(
+    services.router,
+    prefix="/api/v1",
+    tags=["services"],
+)
+app.include_router(
+    health_checks.router,
+    prefix="/api/v1",
+    tags=["health-checks"],
+)
+app.include_router(
+    version_checks.router,
+    prefix="/api/v1",
+    tags=["version-checks"],
+)
+app.include_router(
+    deployments.router,
+    prefix="/api/v1",
+    tags=["deployments"],
+)
 
 
 @app.get("/")

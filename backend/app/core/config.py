@@ -26,6 +26,7 @@ class Settings(BaseSettings):
     RESEND_API_KEY: str = ""
     SLACK_WEBHOOK_URL: str = ""
     ALERT_EMAIL_FROM: str = "alerts@monitorillo.com"
+    FRONTEND_URL: str = "http://localhost:5173"  # Default for development
 
     # Daemon authentication
     DAEMON_API_KEY: str

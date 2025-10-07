@@ -30,6 +30,12 @@ class Team(Base):
     alerts: Mapped[List["Alert"]] = relationship(
         "Alert", back_populates="team", cascade="all, delete-orphan"
     )
+    invitations: Mapped[List["Invitation"]] = relationship(
+        "Invitation", back_populates="team", cascade="all, delete-orphan"
+    )
+    services: Mapped[List["Service"]] = relationship(
+        "Service", back_populates="team", cascade="all, delete-orphan"
+    )
 
 
 class TeamMember(Base):

@@ -12,6 +12,9 @@ import { ServerDetail } from './pages/ServerDetail';
 import { Alerts } from './pages/Alerts';
 import { SystemOverview } from './pages/SystemOverview';
 import { DockerOverview } from './pages/DockerOverview';
+import { AcceptInvitation } from './pages/AcceptInvitation';
+import { Services } from './pages/Services';
+import { ServiceDetail } from './pages/ServiceDetail';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -32,6 +35,7 @@ function App() {
           {/* Public routes */}
           <Route path="/login" element={isAuthenticated ? <Navigate to="/" replace /> : <Login />} />
           <Route path="/register" element={isAuthenticated ? <Navigate to="/" replace /> : <Register />} />
+          <Route path="/invitations/accept" element={<AcceptInvitation />} />
 
           {/* Protected routes */}
           <Route
@@ -46,6 +50,8 @@ function App() {
             <Route path="teams" element={<Teams />} />
             <Route path="servers" element={<Servers />} />
             <Route path="servers/:serverId" element={<ServerDetail />} />
+            <Route path="services" element={<Services />} />
+            <Route path="services/:serviceId" element={<ServiceDetail />} />
             <Route path="alerts" element={<Alerts />} />
             <Route path="system-overview" element={<SystemOverview />} />
             <Route path="docker-overview" element={<DockerOverview />} />
