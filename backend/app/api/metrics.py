@@ -1,6 +1,5 @@
 from typing import Annotated
 from datetime import datetime, timedelta
-import secrets
 
 from fastapi import APIRouter, Depends, HTTPException, Header, status
 from sqlalchemy import select, desc
@@ -10,8 +9,7 @@ from app.core.auth import get_async_session
 from app.core.users import current_active_user
 from app.models.server import Server, Metric
 from app.models.user import User
-from app.schemas.server import MetricCreate, MetricRead, ServerCreate, ServerRead
-from app.services.alert_evaluator import AlertEvaluator
+from app.schemas.server import MetricCreate, ServerRead
 
 router = APIRouter(prefix="/metrics", tags=["metrics"])
 

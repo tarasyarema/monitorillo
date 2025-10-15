@@ -32,12 +32,13 @@ export const ServiceDetail: React.FC = () => {
   const [showVersionCheckForm, setShowVersionCheckForm] = useState(false);
   const [editingHealthCheck, setEditingHealthCheck] = useState<HealthCheck | null>(null);
   const [editingVersionCheck, setEditingVersionCheck] = useState<VersionCheck | null>(null);
+  const [timeRange, setTimeRange] = useState(1);
+  const [deploymentLimit, setDeploymentLimit] = useState(20);
 
   // Health Check Form State
   const [hcName, setHcName] = useState('');
   const [hcUrl, setHcUrl] = useState('');
   const [hcMethod, setHcMethod] = useState('GET');
-  const [hcInterval, setHcInterval] = useState('5');
   const [hcTimeout, setHcTimeout] = useState('30');
   const [hcExpectedStatus, setHcExpectedStatus] = useState('200');
   const [hcJsonPath, setHcJsonPath] = useState('');
@@ -47,7 +48,6 @@ export const ServiceDetail: React.FC = () => {
   const [vcName, setVcName] = useState('');
   const [vcUrl, setVcUrl] = useState('');
   const [vcJsonPath, setVcJsonPath] = useState('');
-  const [vcInterval, setVcInterval] = useState('5');
   const [vcTimeout, setVcTimeout] = useState('30');
 
   // Data Queries
@@ -70,18 +70,18 @@ export const ServiceDetail: React.FC = () => {
   });
 
   const { data: deployments } = useQuery({
-    queryKey: ['deployments', serviceId],
-    queryFn: () => deploymentsApi.list(Number(serviceId), 50),
+    queryKey: ['deployments', serviceId, deploymentLimit],
+    queryFn: () => deploymentsApi.list(Number(serviceId), deploymentLimit),
     enabled: !!serviceId,
   });
 
-  // Fetch results for timeline (24 hours)
+  // Fetch results for timeline
   const { data: allHealthCheckResults } = useQuery({
-    queryKey: ['allHealthCheckResults', serviceId, healthChecks],
+    queryKey: ['allHealthCheckResults', serviceId, healthChecks, timeRange],
     queryFn: async () => {
       if (!healthChecks || healthChecks.length === 0) return [];
       const results = await Promise.all(
-        healthChecks.map((check: HealthCheck) => healthChecksApi.getResults(check.id, 24).catch(() => []))
+        healthChecks.map((check: HealthCheck) => healthChecksApi.getResults(check.id, timeRange).catch(() => []))
       );
       return results.flat();
     },
@@ -89,11 +89,11 @@ export const ServiceDetail: React.FC = () => {
   });
 
   const { data: allVersionCheckResults } = useQuery({
-    queryKey: ['allVersionCheckResults', serviceId, versionChecks],
+    queryKey: ['allVersionCheckResults', serviceId, versionChecks, timeRange],
     queryFn: async () => {
       if (!versionChecks || versionChecks.length === 0) return [];
       const results = await Promise.all(
-        versionChecks.map((check: VersionCheck) => versionChecksApi.getResults(check.id, 24).catch(() => []))
+        versionChecks.map((check: VersionCheck) => versionChecksApi.getResults(check.id, timeRange).catch(() => []))
       );
       return results.flat();
     },
@@ -236,7 +236,6 @@ export const ServiceDetail: React.FC = () => {
     setHcName('');
     setHcUrl('');
     setHcMethod('GET');
-    setHcInterval('5');
     setHcTimeout('30');
     setHcExpectedStatus('200');
     setHcJsonPath('');
@@ -247,7 +246,6 @@ export const ServiceDetail: React.FC = () => {
     setVcName('');
     setVcUrl('');
     setVcJsonPath('');
-    setVcInterval('5');
     setVcTimeout('30');
   };
 
@@ -256,7 +254,6 @@ export const ServiceDetail: React.FC = () => {
     setHcName(check.name);
     setHcUrl(check.url);
     setHcMethod(check.method);
-    setHcInterval(check.check_interval_minutes.toString());
     setHcTimeout(check.timeout_seconds.toString());
     setHcExpectedStatus(check.expected_status_code.toString());
     setHcJsonPath(check.json_path || '');
@@ -268,7 +265,6 @@ export const ServiceDetail: React.FC = () => {
     setVcName(check.name);
     setVcUrl(check.url);
     setVcJsonPath(check.json_path);
-    setVcInterval(check.check_interval_minutes.toString());
     setVcTimeout(check.timeout_seconds.toString());
   };
 
@@ -283,7 +279,7 @@ export const ServiceDetail: React.FC = () => {
       name: hcName,
       url: hcUrl,
       method: hcMethod,
-      check_interval_minutes: parseInt(hcInterval),
+      check_interval_minutes: 0.5,
       timeout_seconds: parseInt(hcTimeout),
       expected_status_code: parseInt(hcExpectedStatus),
       json_path: hcJsonPath || undefined,
@@ -309,7 +305,7 @@ export const ServiceDetail: React.FC = () => {
       name: vcName,
       url: vcUrl,
       json_path: vcJsonPath,
-      check_interval_minutes: parseInt(vcInterval),
+      check_interval_minutes: 0.5,
       timeout_seconds: parseInt(vcTimeout),
       enabled: true,
     };
@@ -337,6 +333,28 @@ export const ServiceDetail: React.FC = () => {
     }
   };
 
+  // Helper to compare semantic versions
+  const compareVersions = (v1: string, v2: string): number => {
+    // Remove any leading 'v' character
+    const clean1 = v1.replace(/^v/, '');
+    const clean2 = v2.replace(/^v/, '');
+
+    // Split by dots and convert to numbers
+    const parts1 = clean1.split('.').map((p) => parseInt(p, 10) || 0);
+    const parts2 = clean2.split('.').map((p) => parseInt(p, 10) || 0);
+
+    // Compare each part
+    const maxLength = Math.max(parts1.length, parts2.length);
+    for (let i = 0; i < maxLength; i++) {
+      const num1 = parts1[i] || 0;
+      const num2 = parts2[i] || 0;
+      if (num1 > num2) return 1;
+      if (num1 < num2) return -1;
+    }
+
+    return 0;
+  };
+
   // Helper to determine if version is upgrade or rollback
   const getDeploymentType = (currentIndex: number, deploymentList: Deployment[]): 'upgrade' | 'rollback' => {
     if (currentIndex >= deploymentList.length - 1) return 'upgrade';
@@ -344,8 +362,17 @@ export const ServiceDetail: React.FC = () => {
     const current = deploymentList[currentIndex];
     const previous = deploymentList[currentIndex + 1];
 
-    // Simple version comparison (you might want to use semver library for production)
-    return current.version > previous.version ? 'upgrade' : 'rollback';
+    // Compare versions using semantic versioning
+    return compareVersions(current.version, previous.version) >= 0 ? 'upgrade' : 'rollback';
+  };
+
+  // Helper to format time range label
+  const getTimeRangeLabel = (hours: number): string => {
+    if (hours === 1) return '1h';
+    if (hours === 6) return '6h';
+    if (hours === 24) return '24h';
+    if (hours === 168) return '7d';
+    return `${hours}h`;
   };
 
   // Build chart data for timeline visualization
@@ -405,14 +432,24 @@ export const ServiceDetail: React.FC = () => {
       });
     });
 
-    // Add deployment markers to data points
+    // Add deployment markers to data points (filter by time range)
     if (deployments) {
-      deployments.forEach((deployment: Deployment, index: number) => {
+      // Calculate cutoff timestamp based on timeRange
+      const now = Date.now();
+      const cutoffTimestamp = now - timeRange * 60 * 60 * 1000; // timeRange is in hours
+
+      // Filter deployments to only include those within the time range
+      const filteredDeployments = deployments.filter((deployment: Deployment) => {
+        const deploymentTimestamp = new Date(deployment.detected_at).getTime();
+        return deploymentTimestamp >= cutoffTimestamp;
+      });
+
+      filteredDeployments.forEach((deployment: Deployment, index: number) => {
         const timestamp = new Date(deployment.detected_at).getTime();
         const existingPoint = sortedData.find((d) => d.timestamp === timestamp);
 
         const deploymentMarkerValue = maxLatency * 1.15; // 15% above max
-        const deploymentType = getDeploymentType(index, deployments);
+        const deploymentType = getDeploymentType(index, filteredDeployments);
 
         if (existingPoint) {
           existingPoint.deployment = deploymentMarkerValue;
@@ -580,23 +617,39 @@ export const ServiceDetail: React.FC = () => {
         <CardHeader>
           <div className="flex justify-between items-start">
             <div className="flex-1">
-              <CardTitle>Activity Timeline (Last 24h)</CardTitle>
+              <CardTitle>Activity Timeline (Last {getTimeRangeLabel(timeRange)})</CardTitle>
               <CardDescription>
                 Response times for health checks and version checks with deployment markers
               </CardDescription>
             </div>
-            <div className="flex items-center gap-4 text-xs">
+            <div className="flex items-center gap-4">
               <div className="flex items-center gap-2">
-                <svg width="16" height="16" viewBox="0 0 16 16">
-                  <polygon points="8,12 2,4 14,4" fill="#10b981" />
-                </svg>
-                <span className="text-gray-600">Upgrade</span>
+                <Button variant={timeRange === 1 ? 'default' : 'outline'} size="sm" onClick={() => setTimeRange(1)}>
+                  1h
+                </Button>
+                <Button variant={timeRange === 6 ? 'default' : 'outline'} size="sm" onClick={() => setTimeRange(6)}>
+                  6h
+                </Button>
+                <Button variant={timeRange === 24 ? 'default' : 'outline'} size="sm" onClick={() => setTimeRange(24)}>
+                  24h
+                </Button>
+                <Button variant={timeRange === 168 ? 'default' : 'outline'} size="sm" onClick={() => setTimeRange(168)}>
+                  7d
+                </Button>
               </div>
-              <div className="flex items-center gap-2">
-                <svg width="16" height="16" viewBox="0 0 16 16">
-                  <polygon points="8,12 2,4 14,4" fill="#ef4444" />
-                </svg>
-                <span className="text-gray-600">Rollback</span>
+              <div className="flex items-center gap-4 text-xs">
+                <div className="flex items-center gap-2">
+                  <svg width="16" height="16" viewBox="0 0 16 16">
+                    <polygon points="8,12 2,4 14,4" fill="#10b981" />
+                  </svg>
+                  <span className="text-gray-600">Upgrade</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <svg width="16" height="16" viewBox="0 0 16 16">
+                    <polygon points="8,12 2,4 14,4" fill="#ef4444" />
+                  </svg>
+                  <span className="text-gray-600">Rollback</span>
+                </div>
               </div>
             </div>
           </div>
@@ -605,7 +658,8 @@ export const ServiceDetail: React.FC = () => {
           {chartData.length === 0 ? (
             <div className="text-center text-gray-500 py-8">
               <p className="mb-2">
-                No activity in the last 24 hours. Enable health checks or version checks to start tracking.
+                No activity in the last {getTimeRangeLabel(timeRange)}. Enable health checks or version checks to start
+                tracking.
               </p>
               {deployments && deployments.length > 0 && (
                 <p className="text-xs mt-4">
@@ -756,10 +810,6 @@ export const ServiceDetail: React.FC = () => {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium mb-1">Interval (minutes)</label>
-                    <Input type="number" value={hcInterval} onChange={(e) => setHcInterval(e.target.value)} />
-                  </div>
-                  <div>
                     <label className="block text-sm font-medium mb-1">Timeout (seconds)</label>
                     <Input type="number" value={hcTimeout} onChange={(e) => setHcTimeout(e.target.value)} />
                   </div>
@@ -828,12 +878,9 @@ export const ServiceDetail: React.FC = () => {
                   </div>
                 </CardHeader>
                 <CardContent>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4 text-sm">
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-4 text-sm">
                     <div>
                       <span className="text-gray-600">Method:</span> {check.method}
-                    </div>
-                    <div>
-                      <span className="text-gray-600">Interval:</span> {check.check_interval_minutes}m
                     </div>
                     <div>
                       <span className="text-gray-600">Expected Status:</span> {check.expected_status_code}
@@ -957,10 +1004,6 @@ export const ServiceDetail: React.FC = () => {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium mb-1">Interval (minutes)</label>
-                    <Input type="number" value={vcInterval} onChange={(e) => setVcInterval(e.target.value)} />
-                  </div>
-                  <div>
                     <label className="block text-sm font-medium mb-1">Timeout (seconds)</label>
                     <Input type="number" value={vcTimeout} onChange={(e) => setVcTimeout(e.target.value)} />
                   </div>
@@ -1010,12 +1053,9 @@ export const ServiceDetail: React.FC = () => {
                   </div>
                 </CardHeader>
                 <CardContent>
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-4 text-sm">
+                  <div className="grid grid-cols-2 md:grid-cols-2 gap-4 mb-4 text-sm">
                     <div>
                       <span className="text-gray-600">JSON Path:</span> {check.json_path}
-                    </div>
-                    <div>
-                      <span className="text-gray-600">Interval:</span> {check.check_interval_minutes}m
                     </div>
                     <div>
                       <span className="text-gray-600">Timeout:</span> {check.timeout_seconds}s
@@ -1067,6 +1107,69 @@ export const ServiceDetail: React.FC = () => {
           <Card>
             <CardContent className="text-center py-8">
               <p className="text-gray-600">No version checks configured yet.</p>
+            </CardContent>
+          </Card>
+        )}
+      </div>
+
+      {/* Deployment History */}
+      <div>
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-2xl font-bold">Deployment History</h2>
+        </div>
+
+        {deployments && deployments.length > 0 ? (
+          <Card>
+            <CardContent className="p-0">
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead>
+                    <tr className="border-b bg-gray-50">
+                      <th className="text-left p-4 font-medium text-sm">Version</th>
+                      <th className="text-left p-4 font-medium text-sm">Type</th>
+                      <th className="text-left p-4 font-medium text-sm">Detected At</th>
+                      <th className="text-left p-4 font-medium text-sm">Notes</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {deployments.map((deployment: Deployment, index: number) => {
+                      const deploymentType = getDeploymentType(index, deployments);
+                      return (
+                        <tr key={deployment.id} className="border-b hover:bg-gray-50">
+                          <td className="p-4">
+                            <span className="font-mono font-medium">{deployment.version}</span>
+                          </td>
+                          <td className="p-4">
+                            <div className="flex items-center gap-2">
+                              <span className="text-lg">{deploymentType === 'upgrade' ? '🚀' : '⏪'}</span>
+                              <Badge variant={deploymentType === 'upgrade' ? 'default' : 'destructive'}>
+                                {deploymentType === 'upgrade' ? 'Upgrade' : 'Rollback'}
+                              </Badge>
+                            </div>
+                          </td>
+                          <td className="p-4 text-sm text-gray-600">
+                            {safeToLocaleDateString(deployment.detected_at)}
+                          </td>
+                          <td className="p-4 text-sm text-gray-600">{deployment.notes || '-'}</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+              {deployments.length >= deploymentLimit && (
+                <div className="p-4 border-t text-center">
+                  <Button variant="outline" onClick={() => setDeploymentLimit((prev) => prev + 20)}>
+                    Load 20 More
+                  </Button>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        ) : (
+          <Card>
+            <CardContent className="text-center py-8">
+              <p className="text-gray-600">No deployments detected yet.</p>
             </CardContent>
           </Card>
         )}

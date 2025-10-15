@@ -41,7 +41,7 @@ async def alert_evaluation_worker():
 
 
 async def health_check_worker():
-    """Background worker that executes health checks and version checks every minute"""
+    """Background worker that executes health checks and version checks every 30 seconds"""
 
     print("Health check and version check worker started")
 
@@ -64,8 +64,8 @@ async def health_check_worker():
         except Exception as e:
             print(f"Error in health check worker: {e}")
 
-        # Wait 1 minute before next execution
-        await asyncio.sleep(60)
+        # Wait 30 seconds before next execution
+        await asyncio.sleep(30)
 
 
 async def run_all_workers():

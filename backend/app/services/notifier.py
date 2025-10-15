@@ -260,9 +260,9 @@ class NotificationService:
         if alert_type == "resolved":
             details.append("Status: ✅ RESOLVED")
         elif alert_type == "reminder":
-            details.append(f"Status: 🔔 REMINDER (Alert still active)")
+            details.append("Status: 🔔 REMINDER (Alert still active)")
         else:
-            details.append(f"Status: 🚨 NEW ALERT")
+            details.append("Status: 🚨 NEW ALERT")
 
         details.append("")
 

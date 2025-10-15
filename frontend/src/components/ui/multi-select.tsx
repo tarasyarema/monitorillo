@@ -10,11 +10,7 @@ interface MultiSelectProps {
   placeholder?: string;
 }
 
-export const MultiSelect: React.FC<MultiSelectProps> = ({
-  options,
-  selectedKeys,
-  onSelectionChange,
-}) => {
+export const MultiSelect: React.FC<MultiSelectProps> = ({ options, selectedKeys, onSelectionChange }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [filterText, setFilterText] = useState('');
   const dropdownRef = useRef<HTMLDivElement>(null);

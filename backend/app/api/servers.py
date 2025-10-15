@@ -6,7 +6,6 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.auth import get_async_session
-from app.core.rbac import require_team_admin
 from app.core.users import current_active_user
 from app.models.server import Server
 from app.models.team import TeamMember

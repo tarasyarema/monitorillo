@@ -4,7 +4,7 @@ from typing import Dict, Any
 
 import httpx
 from jsonpath_ng import parse
-from sqlalchemy import desc, select, and_
+from sqlalchemy import select, and_
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.service import Deployment, Service, VersionCheck, VersionCheckResult

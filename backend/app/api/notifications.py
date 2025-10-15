@@ -1,4 +1,4 @@
-from typing import Annotated, List
+from typing import Annotated
 from datetime import datetime
 
 from fastapi import APIRouter, Depends, HTTPException, status

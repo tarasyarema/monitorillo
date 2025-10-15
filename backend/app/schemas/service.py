@@ -43,7 +43,7 @@ class HealthCheckBase(BaseModel):
     body: Optional[str] = None
     expected_status_code: int
     timeout_seconds: int = 30
-    check_interval_minutes: int = 5
+    check_interval_minutes: int = 1
     json_path: Optional[str] = None
     expected_value: Optional[str] = None
     enabled: bool = True
@@ -97,7 +97,7 @@ class VersionCheckBase(BaseModel):
     url: str
     json_path: str
     timeout_seconds: int = 30
-    check_interval_minutes: int = 5
+    check_interval_minutes: int = 1
     enabled: bool = True
 
 
