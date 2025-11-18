@@ -40,6 +40,7 @@ export const ServiceDetail: React.FC = () => {
   const [hcUrl, setHcUrl] = useState('');
   const [hcMethod, setHcMethod] = useState('GET');
   const [hcTimeout, setHcTimeout] = useState('30');
+  const [hcInterval, setHcInterval] = useState('1');
   const [hcExpectedStatus, setHcExpectedStatus] = useState('200');
   const [hcJsonPath, setHcJsonPath] = useState('');
   const [hcExpectedValue, setHcExpectedValue] = useState('');
@@ -49,6 +50,7 @@ export const ServiceDetail: React.FC = () => {
   const [vcUrl, setVcUrl] = useState('');
   const [vcJsonPath, setVcJsonPath] = useState('');
   const [vcTimeout, setVcTimeout] = useState('30');
+  const [vcInterval, setVcInterval] = useState('1');
 
   // Data Queries
   const { data: service, isLoading: serviceLoading } = useQuery({
@@ -237,6 +239,7 @@ export const ServiceDetail: React.FC = () => {
     setHcUrl('');
     setHcMethod('GET');
     setHcTimeout('30');
+    setHcInterval('1');
     setHcExpectedStatus('200');
     setHcJsonPath('');
     setHcExpectedValue('');
@@ -247,6 +250,7 @@ export const ServiceDetail: React.FC = () => {
     setVcUrl('');
     setVcJsonPath('');
     setVcTimeout('30');
+    setVcInterval('1');
   };
 
   const loadHealthCheckForEdit = (check: HealthCheck) => {
@@ -255,6 +259,7 @@ export const ServiceDetail: React.FC = () => {
     setHcUrl(check.url);
     setHcMethod(check.method);
     setHcTimeout(check.timeout_seconds.toString());
+    setHcInterval(check.check_interval_minutes.toString());
     setHcExpectedStatus(check.expected_status_code.toString());
     setHcJsonPath(check.json_path || '');
     setHcExpectedValue(check.expected_value || '');
@@ -266,6 +271,7 @@ export const ServiceDetail: React.FC = () => {
     setVcUrl(check.url);
     setVcJsonPath(check.json_path);
     setVcTimeout(check.timeout_seconds.toString());
+    setVcInterval(check.check_interval_minutes.toString());
   };
 
   const handleHealthCheckSubmit = (e: React.FormEvent) => {
@@ -279,7 +285,7 @@ export const ServiceDetail: React.FC = () => {
       name: hcName,
       url: hcUrl,
       method: hcMethod,
-      check_interval_minutes: 0.5,
+      check_interval_minutes: parseFloat(hcInterval),
       timeout_seconds: parseInt(hcTimeout),
       expected_status_code: parseInt(hcExpectedStatus),
       json_path: hcJsonPath || undefined,
@@ -305,7 +311,7 @@ export const ServiceDetail: React.FC = () => {
       name: vcName,
       url: vcUrl,
       json_path: vcJsonPath,
-      check_interval_minutes: 0.5,
+      check_interval_minutes: parseFloat(vcInterval),
       timeout_seconds: parseInt(vcTimeout),
       enabled: true,
     };
@@ -814,6 +820,16 @@ export const ServiceDetail: React.FC = () => {
                     <Input type="number" value={hcTimeout} onChange={(e) => setHcTimeout(e.target.value)} />
                   </div>
                   <div>
+                    <label className="block text-sm font-medium mb-1">Check Interval (minutes)</label>
+                    <Input
+                      type="number"
+                      step="0.1"
+                      min="0.1"
+                      value={hcInterval}
+                      onChange={(e) => setHcInterval(e.target.value)}
+                    />
+                  </div>
+                  <div>
                     <label className="block text-sm font-medium mb-1">JSON Path (optional)</label>
                     <Input
                       placeholder="e.g., status"
@@ -1006,6 +1022,16 @@ export const ServiceDetail: React.FC = () => {
                   <div>
                     <label className="block text-sm font-medium mb-1">Timeout (seconds)</label>
                     <Input type="number" value={vcTimeout} onChange={(e) => setVcTimeout(e.target.value)} />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Check Interval (minutes)</label>
+                    <Input
+                      type="number"
+                      step="0.1"
+                      min="0.1"
+                      value={vcInterval}
+                      onChange={(e) => setVcInterval(e.target.value)}
+                    />
                   </div>
                 </div>
                 <div className="flex gap-2">

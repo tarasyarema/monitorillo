@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import TYPE_CHECKING, List
 
-from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, JSON, String, Text
+from sqlalchemy import Boolean, DateTime, Float, ForeignKey, Integer, JSON, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
@@ -50,7 +50,7 @@ class HealthCheck(Base):
     body: Mapped[str | None] = mapped_column(Text, nullable=True)
     expected_status_code: Mapped[int] = mapped_column(Integer, nullable=False)
     timeout_seconds: Mapped[int] = mapped_column(Integer, nullable=False, default=30)
-    check_interval_minutes: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
+    check_interval_minutes: Mapped[float] = mapped_column(Float, nullable=False, default=1)
     json_path: Mapped[str | None] = mapped_column(String(length=255), nullable=True)
     expected_value: Mapped[str | None] = mapped_column(String(length=255), nullable=True)
     enabled: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
@@ -89,7 +89,7 @@ class VersionCheck(Base):
     url: Mapped[str] = mapped_column(String(length=1024), nullable=False)
     json_path: Mapped[str] = mapped_column(String(length=255), nullable=False)
     timeout_seconds: Mapped[int] = mapped_column(Integer, nullable=False, default=30)
-    check_interval_minutes: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
+    check_interval_minutes: Mapped[float] = mapped_column(Float, nullable=False, default=1)
     enabled: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
     alert_on_failure: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
